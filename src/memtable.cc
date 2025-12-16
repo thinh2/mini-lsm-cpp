@@ -5,7 +5,7 @@ std::optional<std::vector<std::byte>>
 MemTable::get(const std::vector<std::byte> &key) {
   std::shared_lock lk{shared_mu_};
   if (storage_.contains(key)) {
-    return storage_[key];
+    return storage_.at(key);
   }
   return std::nullopt;
 }

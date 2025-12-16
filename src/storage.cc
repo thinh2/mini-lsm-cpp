@@ -25,7 +25,7 @@ Storage::get(std::vector<std::byte> &key) {
   }
 
   for (auto it = immutable_memtable_.rbegin(); it != immutable_memtable_.rend();
-       it = next(it)) {
+       it = std::next(it)) {
     value_slice = (*it)->get(key);
     if (value_slice == std::nullopt)
       continue;
