@@ -14,10 +14,12 @@ FetchContent_MakeAvailable(googletest)
 # Source files
 set(SOURCES
     src/memtable.cc
+    src/storage.cc
 )
 
 set(HEADERS
     include/memtable.hpp
+    include/storage.hpp
 )
 
 # Main library
