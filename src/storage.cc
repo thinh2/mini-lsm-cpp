@@ -5,6 +5,7 @@ void Storage::put(std::vector<std::byte> &key, std::vector<std::byte> &value) {
   uint64_t record_size = key.size() + value.size();
   std::lock_guard lk{mu_};
   if (record_size + active_memtable_->size() > opt_.mem_table_size) {
+    active_memtable_->freeze();
     immutable_memtable_.push_back(std::move(active_memtable_));
     active_memtable_ = std::make_unique<MemTable>(opt_.mem_table_size);
   }
