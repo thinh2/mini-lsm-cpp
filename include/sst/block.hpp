@@ -1,6 +1,5 @@
 #pragma once
 
-#include "block_iterator.hpp"
 #include <span>
 #include <vector>
 

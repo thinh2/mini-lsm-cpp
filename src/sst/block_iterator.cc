@@ -1,4 +1,5 @@
-#include "block_iterator.hpp"
+#include "sst/block_iterator.hpp"
+#include "sst/block.hpp"
 #include <algorithm>
 
 BlockIterator::BlockIterator(std::shared_ptr<Block> block_ptr)

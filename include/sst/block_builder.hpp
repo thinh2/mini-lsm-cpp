@@ -1,7 +1,7 @@
 #pragma once
-#include "block.hpp"
 #include <vector>
 
+class Block;
 class BlockBuilder {
 public:
   BlockBuilder() : size_(0) {}

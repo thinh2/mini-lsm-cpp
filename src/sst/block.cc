@@ -1,4 +1,4 @@
-#include "block.hpp"
+#include "sst/block.hpp"
 #include "utils.hpp"
 #include <algorithm>
 #include <span>
@@ -10,6 +10,7 @@ std::vector<std::byte> Block::encode() {
     encoded_data.append_range(encode_uint16_t(offset));
   }
   encoded_data.append_range(encode_uint16_t(offsets_.size()));
+  return encoded_data;
 }
 
 Block Block::decode(const std::vector<std::byte> &data) {
@@ -46,14 +47,16 @@ Block::Entry Block::get_entry(size_t entry_idx) {
   std::array<std::byte, 2> len{data_[offsets_[entry_idx]],
                                data_[offsets_[entry_idx] + 1]};
   uint16_t key_len = decode_uin16_t(len);
-  result.key_.reserve(key_len);
+  result.key_.resize(key_len);
   std::copy(data_.begin() + offsets_[entry_idx] + Block::EntryKeyLenSize,
-            data_.begin() + offsets_[entry_idx] + key_len, result.key_.begin());
+            data_.begin() + offsets_[entry_idx] + Block::EntryKeyLenSize +
+                key_len,
+            result.key_.begin());
 
   size_t value_offset = offsets_[entry_idx] + Block::EntryKeyLenSize + key_len;
   len = {data_[value_offset], data_[value_offset + 1]};
   uint16_t value_len = decode_uin16_t(len);
-  result.value_.reserve(value_len);
+  result.value_.resize(value_len);
   std::copy(data_.begin() + value_offset + Block::EntryValueLenSize,
             data_.begin() + value_offset + Block::EntryValueLenSize + value_len,
             result.value_.begin());

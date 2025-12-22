@@ -15,11 +15,17 @@ FetchContent_MakeAvailable(googletest)
 set(SOURCES
     src/memtable.cc
     src/storage.cc
+    src/sst/block_builder.cc
+    src/sst/block_iterator.cc
+    src/sst/block.cc
 )
 
 set(HEADERS
     include/memtable.hpp
     include/storage.hpp
+    include/sst/block.hpp
+    include/sst/block_iterator.hpp
+    include/sst/block_builder.hpp
 )
 
 # Main library

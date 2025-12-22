@@ -1,9 +1,9 @@
 #pragma once
 
-#include "block.hpp"
 #include "iterator.hpp"
 #include <memory>
 
+class Block;
 class BlockIterator : public Iterator {
 public:
   BlockIterator(std::shared_ptr<Block> block);
