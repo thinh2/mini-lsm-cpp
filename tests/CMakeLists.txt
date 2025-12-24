@@ -30,6 +30,7 @@ add_test(NAME storage_test COMMAND storage_test)
 # SST tests
 add_executable(sst_test
     sst/block_test.cc
+    sst/block_iterator_test.cc
 )
 
 target_link_libraries(sst_test

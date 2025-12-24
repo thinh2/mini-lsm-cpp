@@ -47,4 +47,16 @@ MakeBytesVectorWithNulls(const std::string &pattern) {
   return bytes;
 }
 
+inline std::vector<std::pair<std::vector<std::byte>, std::vector<std::byte>>>
+MakeKeyValueEntryFromString(
+    const std::vector<std::pair<std::string, std::string>> &kv_strs) {
+  std::vector<std::pair<std::vector<std::byte>, std::vector<std::byte>>> res;
+  res.reserve(kv_strs.size());
+  for (auto &entry : kv_strs) {
+    res.emplace_back(MakeBytesVector(entry.first),
+                     MakeBytesVector(entry.second));
+  }
+  return res;
+}
+
 } // namespace test_utils
