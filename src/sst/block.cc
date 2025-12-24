@@ -23,10 +23,11 @@ Block Block::decode(const std::vector<std::byte> &data) {
   uint16_t entries_num = decode_uint16_t(footer);
 
   std::vector<uint16_t> offsets;
-  offsets.reserve(entries_num);
+  offsets.resize(entries_num);
 
   // TODO: handle the case offsets_start_idx < 0
-  size_t offsets_start_idx = sz - 1 - entries_num * OffsetSize - FooterLenSize;
+  size_t offsets_start_idx = sz - entries_num * OffsetSize - FooterLenSize;
+  size_t data_block_length = offsets_start_idx;
 
   for (size_t entry_idx = 0; entry_idx < entries_num;
        entry_idx++, offsets_start_idx += OffsetSize) {
@@ -35,7 +36,8 @@ Block Block::decode(const std::vector<std::byte> &data) {
     offsets[entry_idx] = decode_uint16_t(offset_data);
   }
 
-  std::vector<std::byte> data_block(data.begin(), data.begin() + offsets[0]);
+  std::vector<std::byte> data_block(data.begin(),
+                                    data.begin() + data_block_length);
 
   return Block(data_block, offsets);
 }
