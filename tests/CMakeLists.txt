@@ -42,3 +42,17 @@ target_include_directories(sst_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(sst_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
 add_test(NAME sst_test COMMAND sst_test)
 
+# IO tests
+add_executable(io_test
+    io/file_reader_test.cc
+)
+
+target_link_libraries(io_test
+    mini_lsm
+    gtest_main
+)
+
+target_include_directories(io_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(io_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
+add_test(NAME io_test COMMAND io_test)
+
