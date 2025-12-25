@@ -56,3 +56,19 @@ target_include_directories(io_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(io_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
 add_test(NAME io_test COMMAND io_test)
 
+# encode test
+add_executable(encode_test
+    encode/test_encode.cc
+)
+
+target_link_libraries(encode_test
+    mini_lsm
+    gtest_main
+)
+
+target_include_directories(encode_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(encode_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
+add_test(NAME encode_test COMMAND io_test)
+
+
+
