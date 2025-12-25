@@ -13,6 +13,6 @@ void FileReader::read(size_t offsets, size_t length,
 
 void FileReader::close() { in_.close(); }
 
-size_t FileReader::file_size() { return file_size_; }
+uint64_t FileReader::file_size() { return file_size_; }
 
 FileReader::~FileReader() { close(); }
