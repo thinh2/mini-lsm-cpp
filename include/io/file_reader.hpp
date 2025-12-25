@@ -11,11 +11,11 @@ public:
   FileReader(const fs::path &path);
   void read(size_t offsets, size_t length, std::vector<std::byte> &buffer);
   void close();
-  size_t file_size();
+  uint64_t file_size();
   ~FileReader();
 
 private:
   std::ifstream in_;
   fs::path path_name_;
-  size_t file_size_;
+  uint64_t file_size_;
 };
