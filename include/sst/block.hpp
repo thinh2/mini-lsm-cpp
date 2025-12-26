@@ -1,5 +1,6 @@
 #pragma once
 
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -28,6 +29,7 @@ public:
   static Block decode(const std::vector<std::byte> &bytes);
   Entry get_entry(size_t entry_idx);
   size_t size();
+  std::optional<std::vector<std::byte>> get(const std::vector<std::byte> &key);
 
 private:
   std::vector<std::byte> data_;

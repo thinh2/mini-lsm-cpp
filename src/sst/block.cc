@@ -66,3 +66,15 @@ Block::Entry Block::get_entry(size_t entry_idx) {
 }
 
 size_t Block::size() { return offsets_.size(); }
+
+// TODO: implement binary search for faster key finding
+std::optional<std::vector<std::byte>>
+Block::get(const std::vector<std::byte> &key) {
+  for (size_t i = 0; i < offsets_.size(); i++) {
+    auto entry = get_entry(i);
+    if (entry.key_ == key) {
+      return entry.value_;
+    }
+  }
+  return std::nullopt;
+}
