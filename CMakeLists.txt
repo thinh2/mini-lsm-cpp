@@ -18,6 +18,7 @@ set(SOURCES
     src/sst/block_builder.cc
     src/sst/block_iterator.cc
     src/sst/block.cc
+    src/sst/sst.cc
     src/io/file_reader.cc
 )
 
@@ -27,6 +28,7 @@ set(HEADERS
     include/sst/block.hpp
     include/sst/block_iterator.hpp
     include/sst/block_builder.hpp
+    include/sst/sst.hpp
     include/io/file_reader.hpp
 )
 

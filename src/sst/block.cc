@@ -20,7 +20,9 @@ Block Block::decode(const std::vector<std::byte> &data) {
 
   int sz = data.size();
   std::array<std::byte, FooterLenSize> footer = {data[sz - 2], data[sz - 1]};
-  uint16_t entries_num = decode_uint16_t(footer);
+  std::span<const std::byte, FooterLenSize> footer_span{footer.data(),
+                                                        footer.size()};
+  uint16_t entries_num = decode_uint16_t(footer_span);
 
   std::vector<uint16_t> offsets;
   offsets.resize(entries_num);
@@ -33,7 +35,10 @@ Block Block::decode(const std::vector<std::byte> &data) {
        entry_idx++, offsets_start_idx += OffsetSize) {
     std::array<std::byte, OffsetSize> offset_data{data[offsets_start_idx],
                                                   data[offsets_start_idx + 1]};
-    offsets[entry_idx] = decode_uint16_t(offset_data);
+    std::span<const std::byte, OffsetSize> offset_span{offset_data.data(),
+                                                       offset_data.size()};
+
+    offsets[entry_idx] = decode_uint16_t(offset_span);
   }
 
   std::vector<std::byte> data_block(data.begin(),
@@ -46,9 +51,10 @@ Block::Entry Block::get_entry(size_t entry_idx) {
   if (entry_idx > offsets_.size())
     throw std::runtime_error("out of bound entry index");
   Block::Entry result;
-  std::array<std::byte, 2> len{data_[offsets_[entry_idx]],
-                               data_[offsets_[entry_idx] + 1]};
-  uint16_t key_len = decode_uint16_t(len);
+  std::span<const std::byte, 2> len_span{data_.begin() + offsets_[entry_idx],
+                                         data_.begin() + offsets_[entry_idx] +
+                                             Block::EntryKeyLenSize};
+  uint16_t key_len = decode_uint16_t(len_span);
   result.key_.resize(key_len);
   std::copy(data_.begin() + offsets_[entry_idx] + Block::EntryKeyLenSize,
             data_.begin() + offsets_[entry_idx] + Block::EntryKeyLenSize +
@@ -56,8 +62,10 @@ Block::Entry Block::get_entry(size_t entry_idx) {
             result.key_.begin());
 
   size_t value_offset = offsets_[entry_idx] + Block::EntryKeyLenSize + key_len;
-  len = {data_[value_offset], data_[value_offset + 1]};
-  uint16_t value_len = decode_uint16_t(len);
+  len_span = std::span<const std::byte, 2>{data_.begin() + value_offset,
+                                           data_.begin() + value_offset +
+                                               Block::EntryValueLenSize};
+  uint16_t value_len = decode_uint16_t(len_span);
   result.value_.resize(value_len);
   std::copy(data_.begin() + value_offset + Block::EntryValueLenSize,
             data_.begin() + value_offset + Block::EntryValueLenSize + value_len,
