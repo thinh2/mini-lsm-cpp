@@ -91,7 +91,7 @@ std::vector<std::byte> Block::get_first_key() {
   if (offsets_.size() == 0)
     return std::vector<std::byte>();
 
-  return get_entry(0).value_;
+  return get_entry(0).key_;
 }
 
 std::vector<std::byte> Block::get_last_key() {
@@ -99,5 +99,5 @@ std::vector<std::byte> Block::get_last_key() {
     return std::vector<std::byte>();
   }
 
-  return get_entry(offsets_.size() - 1).value_;
+  return get_entry(offsets_.size() - 1).key_;
 }

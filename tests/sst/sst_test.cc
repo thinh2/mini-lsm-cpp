@@ -2,6 +2,7 @@
 #include "sst/block_builder.hpp"
 #include "sst/sst.hpp"
 #include "test_utilities.hpp"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
@@ -29,13 +30,20 @@ protected:
                                              SSTConfig &config) {
     sst_paths.push_back(path_name);
     SSTBuilder sst_builder(path_name, config);
+    std::vector<std::pair<std::string, std::string>> entries;
     for (size_t i = 0; i < n_entries; i++) {
       auto key = "key" + std::to_string(i);
       auto val = "value" + std::to_string(i);
-      auto key_vec = MakeBytesVector(std::move(key));
-      auto val_vec = MakeBytesVector(std::move(val));
+      entries.emplace_back(key, val);
+    }
+
+    std::sort(entries.begin(), entries.end());
+    for (auto &entry : entries) {
+      auto key_vec = MakeBytesVector(std::move(entry.first));
+      auto val_vec = MakeBytesVector(std::move(entry.second));
       sst_builder.add_entry(key_vec, val_vec);
     }
+
     return std::make_tuple(sst_builder.build(), std::move(sst_builder));
   }
 
@@ -83,28 +91,19 @@ TEST_F(SSTTest, TestBlockMetadata) {
 
   auto sst_block_metadata = sst.get_block_metadata();
   auto sst_builder_block_metadata = sst_builder.get_block_metadata();
-  for (int i = 0; i < sst_builder_block_metadata.size(); i++) {
-    EXPECT_EQ(sst_builder_block_metadata[i].offset_,
-              sst_block_metadata[i].offset_);
-    EXPECT_EQ(sst_builder_block_metadata[i].size_, sst_block_metadata[i].size_);
-    EXPECT_EQ(sst_builder_block_metadata[i].first_key_,
-              sst_block_metadata[i].first_key_);
-    EXPECT_EQ(sst_builder_block_metadata[i].last_key_,
-              sst_block_metadata[i].last_key_);
-  }
-  // EXPECT_EQ(sst.get_block_metadata(), sst_builder.get_block_metadata());
+
+  EXPECT_EQ(sst.get_block_metadata(), sst_builder.get_block_metadata());
 }
 
 TEST_F(SSTTest, TestSSTGet) {
   SSTConfig config{.block_size_ = 1024};
-  int n_entries = 100;
+  int n_entries = 1000;
   auto [sst, _] =
       make_sst_table(n_entries, std::filesystem::path("sst-get-test"), config);
   for (size_t i = 0; i < n_entries; i++) {
     auto key_vec = MakeBytesVector("key" + std::to_string(i));
     auto expected_val = MakeBytesVector("value" + std::to_string(i));
     auto val_get = sst.get(key_vec);
-    std::cout << "processing key " << i << std::endl;
     EXPECT_TRUE(val_get.has_value());
     EXPECT_EQ(val_get.value(), expected_val);
   }

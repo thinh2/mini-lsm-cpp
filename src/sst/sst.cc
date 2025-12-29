@@ -14,7 +14,7 @@ SST::SST(const std::filesystem::path &file_name) {
 std::optional<std::vector<std::byte>> SST::get(std::vector<std::byte> &key) {
   for (auto &block_metadata : block_metadata_) {
     if (block_metadata.first_key_ == key ||
-        (block_metadata.first_key_ < key && block_metadata.last_key_ < key) ||
+        (block_metadata.first_key_ < key && key < block_metadata.last_key_) ||
         block_metadata.last_key_ == key) {
       auto block = std::move(read_block(block_metadata));
       return block.get(key);
