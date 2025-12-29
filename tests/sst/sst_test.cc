@@ -107,4 +107,10 @@ TEST_F(SSTTest, TestSSTGet) {
     EXPECT_TRUE(val_get.has_value());
     EXPECT_EQ(val_get.value(), expected_val);
   }
+
+  {
+    auto key_vec = MakeBytesVector("hello");
+    auto val_get = sst.get(key_vec);
+    EXPECT_FALSE(val_get.has_value());
+  }
 }
