@@ -16,20 +16,20 @@ inline uint16_t decode_uint16_t(std::span<const std::byte, 2> &tmp) {
   return static_cast<uint16_t>(high << 8 | low);
 }
 
-inline std::array<std::byte, 4> encode_uint64_t(uint64_t val) {
-  std::array<std::byte, 4> encoded_bytes;
-  for (int i = 3; i >= 0; i--) {
+inline std::array<std::byte, 8> encode_uint64_t(uint64_t val) {
+  std::array<std::byte, 8> encoded_bytes;
+  for (int i = 7; i >= 0; i--) {
     encoded_bytes[i] = std::byte(val & 0xFF);
     val = val >> 8;
   }
   return encoded_bytes;
 }
 
-inline uint64_t decode_uint64_t(std::span<const std::byte, 4> byte_views) {
+inline uint64_t decode_uint64_t(std::span<const std::byte, 8> byte_views) {
   uint64_t decoded_val = 0;
   for (auto &val : byte_views) {
-    decoded_val =
-        decoded_val << 8 | static_cast<uint64_t>(std::to_integer<uint8_t>(val));
+    decoded_val = (decoded_val << 8) |
+                  static_cast<uint64_t>(std::to_integer<uint8_t>(val));
   }
   return decoded_val;
 }

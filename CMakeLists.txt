@@ -19,6 +19,7 @@ set(SOURCES
     src/sst/block_iterator.cc
     src/sst/block.cc
     src/sst/sst.cc
+    src/sst/sst_builder.cc
     src/io/file_reader.cc
 )
 
@@ -30,6 +31,7 @@ set(HEADERS
     include/sst/block_builder.hpp
     include/sst/sst.hpp
     include/io/file_reader.hpp
+    include/sst/sst_builder.hpp
 )
 
 # Main library

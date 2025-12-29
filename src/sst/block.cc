@@ -86,3 +86,18 @@ Block::get(const std::vector<std::byte> &key) {
   }
   return std::nullopt;
 }
+
+std::vector<std::byte> Block::get_first_key() {
+  if (offsets_.size() == 0)
+    return std::vector<std::byte>();
+
+  return get_entry(0).value_;
+}
+
+std::vector<std::byte> Block::get_last_key() {
+  if (offsets_.size() == 0) {
+    return std::vector<std::byte>();
+  }
+
+  return get_entry(offsets_.size() - 1).value_;
+}

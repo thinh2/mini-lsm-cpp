@@ -7,7 +7,7 @@
 namespace test_utils {
 
 // Convert string to std::vector<std::byte>
-inline std::vector<std::byte> MakeBytesVector(const std::string &str) {
+inline std::vector<std::byte> MakeBytesVector(const std::string &&str) {
   std::vector<std::byte> bytes;
   for (char c : str) {
     bytes.push_back(static_cast<std::byte>(c));
@@ -53,8 +53,8 @@ MakeKeyValueEntryFromString(
   std::vector<std::pair<std::vector<std::byte>, std::vector<std::byte>>> res;
   res.reserve(kv_strs.size());
   for (auto &entry : kv_strs) {
-    res.emplace_back(MakeBytesVector(entry.first),
-                     MakeBytesVector(entry.second));
+    res.emplace_back(MakeBytesVector(std::string(entry.first)),
+                     MakeBytesVector(std::string(entry.second)));
   }
   return res;
 }

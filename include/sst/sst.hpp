@@ -18,8 +18,8 @@ class BlockBuilder;
  * n_block (u64)
  *
  * block_metadata encoded format:
- *  block_offset (u64) | block_size (u64) | first_key_len (2 bytes) | first_key
- * | last_key_len (2 bytes) | last_key
+ *  block_offset (8 bytes) | block_size (8 bytes) | first_key_len (2 bytes) |
+ * first_key | last_key_len (2 bytes) | last_key
  *
  * constructor will read the block_metadata into the memory.
  * block is accessed on demand from disk to avoid OOM.
@@ -30,10 +30,12 @@ public:
   uint64_t size_;
   std::vector<std::byte> first_key_;
   std::vector<std::byte> last_key_;
+  std::vector<std::byte> encode();
+  bool operator==(const BlockMetadata &) const;
 
 public:
-  static const int BLOCK_OFFSET_VAL_SIZE = 4;
-  static const int BLOCK_SIZE_VAL_SIZE = 4;
+  static const int BLOCK_OFFSET_VAL_SIZE = 8;
+  static const int BLOCK_SIZE_VAL_SIZE = 8;
   static const int BLOCK_FIRST_KEY_LEN_VAL_SIZE = 2;
   static const int BLOCK_LAST_KEY_LEN_VAL_SIZE = 2;
 };
@@ -43,9 +45,11 @@ public:
   SST(const std::filesystem::path &file_name);
   std::optional<std::vector<std::byte>> get(std::vector<std::byte> &key);
 
+  const std::vector<BlockMetadata> &get_block_metadata() const;
+
 private:
-  static const int NUMBER_OF_BLOCK_VAL_SIZE = 4;
-  static const int BLOCK_METADATA_OFFSET_VAL_SIZE = 4;
+  static const uint32_t NUMBER_OF_BLOCK_VAL_SIZE = 8;
+  static const uint32_t BLOCK_METADATA_OFFSET_VAL_SIZE = 8;
 
 private:
   void read_block_metadata();

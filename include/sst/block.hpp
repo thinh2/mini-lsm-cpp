@@ -31,6 +31,9 @@ public:
   size_t size();
   std::optional<std::vector<std::byte>> get(const std::vector<std::byte> &key);
 
+  std::vector<std::byte> get_first_key();
+  std::vector<std::byte> get_last_key();
+
 private:
   std::vector<std::byte> data_;
   std::vector<uint16_t> offsets_;
