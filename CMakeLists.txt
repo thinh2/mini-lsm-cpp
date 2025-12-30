@@ -21,6 +21,7 @@ set(SOURCES
     src/sst/sst.cc
     src/sst/sst_builder.cc
     src/io/file_reader.cc
+    src/sst/sst_iterator.cc
 )
 
 set(HEADERS
@@ -32,6 +33,7 @@ set(HEADERS
     include/sst/sst.hpp
     include/io/file_reader.hpp
     include/sst/sst_builder.hpp
+    include/sst/sst_iterator.hpp
 )
 
 # Main library

@@ -14,6 +14,8 @@ BlockIterator::BlockIterator(std::shared_ptr<Block> block_ptr)
 void BlockIterator::next() {
   if (curr_offsets_idx_ < block_ptr_->size()) {
     curr_offsets_idx_++;
+    if (curr_offsets_idx_ >= block_ptr_->size())
+      return;
     auto entry = block_ptr_->get_entry(curr_offsets_idx_);
     curr_record_ = Record{.key_ = std::move(entry.key_),
                           .value_ = std::move(entry.value_)};

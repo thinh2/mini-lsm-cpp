@@ -46,6 +46,8 @@ public:
   std::optional<std::vector<std::byte>> get(std::vector<std::byte> &key);
 
   const std::vector<BlockMetadata> &get_block_metadata() const;
+  Block get_block(size_t block_idx) const;
+  size_t number_of_block() const;
 
 private:
   static const uint32_t NUMBER_OF_BLOCK_VAL_SIZE = 8;
@@ -53,7 +55,7 @@ private:
 
 private:
   void read_block_metadata();
-  Block read_block(const BlockMetadata &);
+  Block read_block(const BlockMetadata &) const;
   uint64_t decode_uint64(size_t offset);
   std::vector<std::byte> decode_var_string(size_t offset);
 

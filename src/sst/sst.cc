@@ -27,6 +27,14 @@ const std::vector<BlockMetadata> &SST::get_block_metadata() const {
   return block_metadata_;
 }
 
+Block SST::get_block(size_t block_idx) const {
+  if (block_idx > block_metadata_.size())
+    throw std::runtime_error("out of bound index");
+  return read_block(block_metadata_[block_idx]);
+}
+
+size_t SST::number_of_block() const { return block_metadata_.size(); }
+
 void SST::read_block_metadata() {
   std::vector<std::byte> buffer;
   // read number of block
@@ -67,7 +75,7 @@ void SST::read_block_metadata() {
   }
 }
 
-Block SST::read_block(const BlockMetadata &block_metadata) {
+Block SST::read_block(const BlockMetadata &block_metadata) const {
   std::vector<std::byte> buffer;
   buffer.resize(block_metadata.size_);
   io_->read(block_metadata.offset_, block_metadata.size_, buffer);

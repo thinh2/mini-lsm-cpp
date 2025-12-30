@@ -1,6 +1,7 @@
 #include "sst/block.hpp"
 #include "sst/block_builder.hpp"
 #include "sst/sst.hpp"
+#include "sst/sst_iterator.hpp"
 #include "test_utilities.hpp"
 #include <algorithm>
 #include <filesystem>
@@ -113,4 +114,20 @@ TEST_F(SSTTest, TestSSTGet) {
     auto val_get = sst.get(key_vec);
     EXPECT_FALSE(val_get.has_value());
   }
+}
+
+TEST_F(SSTTest, TestSSTIterator) {
+  SSTConfig config{.block_size_ = 1024};
+  int n_entries = 1000;
+  auto [sst, _] =
+      make_sst_table(n_entries, std::filesystem::path("sst-get-test"), config);
+  SSTIterator sst_iter(std::make_shared<SST>(std::move(sst)));
+  int count = 0;
+  EXPECT_EQ(sst_iter.key(), MakeBytesVector("key0"));
+  EXPECT_EQ(sst_iter.value(), MakeBytesVector("value0"));
+  while (sst_iter.is_valid()) {
+    count++;
+    sst_iter.next();
+  }
+  EXPECT_EQ(count, n_entries);
 }
