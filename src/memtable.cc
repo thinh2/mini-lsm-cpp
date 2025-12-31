@@ -49,10 +49,22 @@ bool ImmutableMemTableIterator::is_valid() {
   return curr_it_ != storage_->end();
 }
 
+std::vector<std::byte> ImmutableMemTableIterator::key() {
+  if (!is_valid()) {
+    return {};
+  }
+  return curr_it_->first;
+}
+
+std::vector<std::byte> ImmutableMemTableIterator::value() {
+  if (!is_valid()) {
+    return {};
+  }
+  return curr_it_->second;
+}
+
 void ImmutableMemTableIterator::next() {
   if (curr_it_ != storage_->end()) {
     curr_it_ = std::next(curr_it_);
-    curr_val_.key_ = curr_it_->first;
-    curr_val_.value_ = curr_it_->second;
   }
 }

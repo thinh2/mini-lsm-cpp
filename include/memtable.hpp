@@ -50,23 +50,16 @@ public:
   bool is_valid();
 
   // return the latest valid key
-  std::vector<std::byte> key() { return curr_val_.value_; }
+  std::vector<std::byte> key();
 
   // return the latest valid value
-  std::vector<std::byte> value() { return curr_val_.value_; }
+  std::vector<std::byte> value();
 
   void next();
 
   ~ImmutableMemTableIterator() = default;
 
 private:
-  struct Record {
-    std::vector<std::byte> key_;
-    std::vector<std::byte> value_;
-  };
-
-private:
   std::shared_ptr<MemTableStorage> storage_;
   MemTableStorage::iterator curr_it_;
-  Record curr_val_;
 };

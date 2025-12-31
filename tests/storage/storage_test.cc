@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <filesystem>
+#include <memory>
 #include <thread>
 #include <vector>
 
@@ -299,5 +301,58 @@ TEST_F(StorageReadHeavyTest, ReadHeavyMixedOperations) {
 
   for (auto &thread : threads) {
     thread.join();
+  }
+}
+
+class StorageFlushRunTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    sst_directory_ = std::filesystem::current_path() / "storage_flush_test";
+    std::filesystem::remove_all(sst_directory_);
+    std::filesystem::create_directories(sst_directory_);
+
+    StorageOption opt{};
+    opt.mem_table_size_ = 4096;
+    opt.max_number_of_memtable_ = 3;
+    opt.max_sst_block_size_ = 1024;
+    opt.sst_directory_ = sst_directory_;
+
+    storage_ = std::make_unique<Storage>(opt);
+  }
+
+  void TearDown() override {
+    storage_.reset();
+    std::filesystem::remove_all(sst_directory_);
+  }
+
+  std::filesystem::path sst_directory_;
+  std::unique_ptr<Storage> storage_;
+};
+
+TEST_F(StorageFlushRunTest, FlushRunPersistsAllEntries) {
+  constexpr int total_entries = 5000;
+
+  for (int i = 0; i < total_entries; ++i) {
+    auto key = MakeBytesVector("key" + std::to_string(i));
+    auto value = MakeBytesVector("value" + std::to_string(i));
+    storage_->put(key, value);
+  }
+
+  storage_->flush_run();
+
+  for (int i = 0; i < total_entries; ++i) {
+    auto key = MakeBytesVector("key" + std::to_string(i));
+    auto expected_value = "value" + std::to_string(i);
+    auto result = storage_->get(key);
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(BytesToString(result.value()), expected_value);
+  }
+
+  // Non-existed key
+  {
+    auto key = MakeBytesVector("key-hello");
+    auto result = storage_->get(key);
+    ASSERT_FALSE(result.has_value());
   }
 }
