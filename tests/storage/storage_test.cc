@@ -1,12 +1,12 @@
 #include <gtest/gtest.h>
 
+#include "storage.hpp"
+#include "test_utilities.hpp"
+#include <chrono>
 #include <filesystem>
 #include <memory>
 #include <thread>
 #include <vector>
-
-#include "storage.hpp"
-#include "test_utilities.hpp"
 
 using test_utils::BytesToString;
 using test_utils::MakeBytesVector;
@@ -338,7 +338,7 @@ TEST_F(StorageFlushRunTest, FlushRunPersistsAllEntries) {
     storage_->put(key, value);
   }
 
-  storage_->flush_run();
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
   for (int i = 0; i < total_entries; ++i) {
     auto key = MakeBytesVector("key" + std::to_string(i));
@@ -356,3 +356,5 @@ TEST_F(StorageFlushRunTest, FlushRunPersistsAllEntries) {
     ASSERT_FALSE(result.has_value());
   }
 }
+
+// TODO: test the storage retrieve lastest version of the key.

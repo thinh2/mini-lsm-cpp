@@ -2,7 +2,9 @@
 #include "memtable.hpp"
 #include "sst/sst.hpp"
 #include <filesystem>
+#include <memory>
 #include <optional>
+#include <thread>
 #include <vector>
 
 struct StorageOption {
@@ -21,6 +23,8 @@ public:
       std::filesystem::create_directories(opt_.sst_directory_);
     }
     active_memtable_ = std::make_unique<MemTable>(opt_.mem_table_size_);
+    stopped_.store(false, std::memory_order_relaxed);
+    flush_thread_ = std::thread([this]() { this->flush_thread(); });
   };
 
   void put(std::vector<std::byte> &key, std::vector<std::byte> &value);
@@ -28,12 +32,13 @@ public:
   void remove(std::vector<std::byte> &key);
 
   void flush_run();
+  ~Storage();
 
 private:
   std::vector<std::byte> TOMBSTONE = std::vector<std::byte>();
   std::vector<std::unique_ptr<SST>>
   flush_to_SST(std::vector<std::shared_ptr<MemTable>> &mem_table_ptr);
-
+  void flush_thread();
   constexpr static std::string sst_file_format = "sst_{}";
 
 private:
@@ -44,4 +49,7 @@ private:
   std::shared_mutex mu_;
 
   uint64_t sst_id{0}; // currently only accessed by one thread;
+
+  std::atomic<bool> stopped_;
+  std::thread flush_thread_;
 };

@@ -1,9 +1,9 @@
 #include "storage.hpp"
 #include "sst/sst_builder.hpp"
 #include <algorithm>
+#include <chrono>
 #include <format>
 #include <mutex>
-
 void Storage::put(std::vector<std::byte> &key, std::vector<std::byte> &value) {
   uint64_t record_size = key.size() + value.size();
   std::lock_guard lk{mu_};
@@ -76,6 +76,13 @@ Storage::flush_to_SST(std::vector<std::shared_ptr<MemTable>> &mem_table_ptr) {
   return new_sst;
 }
 
+void Storage::flush_thread() {
+  while (!stopped_.load(std::memory_order_relaxed)) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    flush_run();
+  }
+}
+
 void Storage::flush_run() {
   std::vector<std::shared_ptr<MemTable>> flush_memtables;
   int flush_memtable_count = 0;
@@ -103,4 +110,10 @@ void Storage::flush_run() {
                               immutable_memtable_.begin() +
                                   flush_memtable_count);
   }
+}
+
+Storage::~Storage() {
+  stopped_.store(true, std::memory_order_relaxed);
+  flush_thread_.join();
+  // TODO: release the unique_ptr, shared_ptr?
 }
