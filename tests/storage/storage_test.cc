@@ -5,6 +5,7 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <random>
 #include <thread>
 #include <vector>
 
@@ -357,4 +358,29 @@ TEST_F(StorageFlushRunTest, FlushRunPersistsAllEntries) {
   }
 }
 
-// TODO: test the storage retrieve lastest version of the key.
+TEST_F(StorageFlushRunTest, RetrieveLastestVersion) {
+  int total_entries = 10000;
+  std::unordered_map<int, int> versions;
+  unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+  std::mt19937 engine(seed);
+  std::uniform_int_distribution<int> dist(1, 100);
+
+  for (int i = 0; i < total_entries; ++i) {
+    auto key = MakeBytesVector("key" + std::to_string(i));
+    int version = dist(engine);
+    versions[i] = version;
+    for (int j = 1; j <= version; j++) {
+      auto value = MakeBytesVector(std::to_string(j));
+      storage_->put(key, value);
+    }
+  }
+
+  for (int i = 0; i < total_entries; ++i) {
+    auto key = MakeBytesVector("key" + std::to_string(i));
+    auto expected_value = std::to_string(versions[i]);
+    auto result = storage_->get(key);
+
+    ASSERT_TRUE(result.has_value());
+    EXPECT_EQ(BytesToString(result.value()), expected_value);
+  }
+}
