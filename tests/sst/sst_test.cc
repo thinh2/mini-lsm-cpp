@@ -49,7 +49,7 @@ protected:
   }
 
   std::ofstream tmp_file_;
-  const std::filesystem::path FILE_NAME_{"/tmp/sst-test"};
+  const std::filesystem::path FILE_NAME_{"/tmp/sst_0"};
   std::vector<std::filesystem::path> sst_paths;
 };
 
@@ -69,7 +69,7 @@ TEST_F(SSTTest, TestSingleEntry) {
 
   int n_entries = 1;
   auto [sst, sst_builder] =
-      make_sst_table(n_entries, std::filesystem::path("sst-get-test"), config);
+      make_sst_table(n_entries, std::filesystem::path("sst_0"), config);
 
   auto sst_block_metadata = sst.get_block_metadata();
   auto sst_builder_block_metadata = sst_builder.get_block_metadata();
@@ -88,7 +88,7 @@ TEST_F(SSTTest, TestBlockMetadata) {
   SSTConfig config{.block_size_ = 1024};
   int n_entries = 100;
   auto [sst, sst_builder] =
-      make_sst_table(n_entries, std::filesystem::path("sst-get-test"), config);
+      make_sst_table(n_entries, std::filesystem::path("sst_0"), config);
 
   auto sst_block_metadata = sst.get_block_metadata();
   auto sst_builder_block_metadata = sst_builder.get_block_metadata();
@@ -100,7 +100,7 @@ TEST_F(SSTTest, TestSSTGet) {
   SSTConfig config{.block_size_ = 1024};
   int n_entries = 1000;
   auto [sst, _] =
-      make_sst_table(n_entries, std::filesystem::path("sst-get-test"), config);
+      make_sst_table(n_entries, std::filesystem::path("sst_0"), config);
   for (size_t i = 0; i < n_entries; i++) {
     auto key_vec = MakeBytesVector("key" + std::to_string(i));
     auto expected_val = MakeBytesVector("value" + std::to_string(i));
@@ -120,7 +120,7 @@ TEST_F(SSTTest, TestSSTIterator) {
   SSTConfig config{.block_size_ = 1024};
   int n_entries = 1000;
   auto [sst, _] =
-      make_sst_table(n_entries, std::filesystem::path("sst-get-test"), config);
+      make_sst_table(n_entries, std::filesystem::path("sst_0"), config);
   SSTIterator sst_iter(std::make_shared<SST>(std::move(sst)));
   int count = 0;
   EXPECT_EQ(sst_iter.key(), MakeBytesVector("key0"));
