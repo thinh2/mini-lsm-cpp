@@ -22,18 +22,21 @@ public:
     if (!opt_.sst_directory_.empty()) {
       std::filesystem::create_directories(opt_.sst_directory_);
     }
+
+    recover();
+
     active_memtable_ =
         std::make_unique<MemTable>(opt_.mem_table_size_, latest_table_id_++);
     stopped_.store(false, std::memory_order_relaxed);
     flush_thread_ = std::thread([this]() { this->flush_thread(); });
   };
 
+  void close();
   void put(std::vector<std::byte> &key, std::vector<std::byte> &value);
   std::optional<std::vector<std::byte>> get(std::vector<std::byte> &key);
   void remove(std::vector<std::byte> &key);
 
   void flush_run();
-  void close();
   uint64_t get_current_table_id();
   ~Storage();
 
@@ -42,7 +45,7 @@ private:
   std::vector<std::unique_ptr<SST>>
   flush_to_SST(std::vector<std::shared_ptr<MemTable>> &mem_table_ptr);
   void flush_thread();
-  constexpr static std::string sst_file_format = "sst_{}";
+  void recover();
 
 private:
   StorageOption opt_;
@@ -51,7 +54,7 @@ private:
   std::unique_ptr<MemTable> active_memtable_;
   std::shared_mutex mu_;
 
-  uint64_t latest_table_id_{0}; // currently only accessed by one thread;
+  uint64_t latest_table_id_;
 
   std::atomic<bool> stopped_;
   std::thread flush_thread_;

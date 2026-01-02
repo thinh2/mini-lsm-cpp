@@ -18,16 +18,21 @@ using test_utils::MakeBytesVector;
 
 class StorageBasicTest : public ::testing::Test {
 protected:
+  void SetUp() override { storage = std::make_unique<Storage>(opt); }
+  void TearDown() override {
+    storage.reset();
+    std::filesystem::remove_all(opt.sst_directory_);
+  }
   StorageOption opt{1024}; // 1KB memtable size
-  Storage storage{opt};
+  std::unique_ptr<Storage> storage;
 };
 
 TEST_F(StorageBasicTest, SimplePutAndGet) {
   auto key = MakeBytesVector("hello");
   auto value = MakeBytesVector("world");
 
-  storage.put(key, value);
-  auto result = storage.get(key);
+  storage->put(key, value);
+  auto result = storage->get(key);
 
   ASSERT_TRUE(result.has_value());
   EXPECT_EQ(BytesToString(result.value()), "world");
@@ -39,21 +44,21 @@ TEST_F(StorageBasicTest, OverwriteAndRemove) {
   auto value2 = MakeBytesVector("value2");
 
   // Put initial value
-  storage.put(key, value1);
-  EXPECT_EQ(BytesToString(storage.get(key).value()), "value1");
+  storage->put(key, value1);
+  EXPECT_EQ(BytesToString(storage->get(key).value()), "value1");
 
   // Overwrite with new value
-  storage.put(key, value2);
-  EXPECT_EQ(BytesToString(storage.get(key).value()), "value2");
+  storage->put(key, value2);
+  EXPECT_EQ(BytesToString(storage->get(key).value()), "value2");
 
   // Remove (TOMBSTONE)
-  storage.remove(key);
-  EXPECT_FALSE(storage.get(key).has_value());
+  storage->remove(key);
+  EXPECT_FALSE(storage->get(key).has_value());
 }
 
 TEST_F(StorageBasicTest, GetNonExistentKey) {
   auto key = MakeBytesVector("nonexistent");
-  auto result = storage.get(key);
+  auto result = storage->get(key);
 
   EXPECT_FALSE(result.has_value());
 }
@@ -66,29 +71,34 @@ class StorageFlushTest : public ::testing::Test {
 protected:
   // Use small memtable size (500 bytes) to trigger flushes easily
   StorageOption opt{500};
-  Storage storage{opt};
+  std::unique_ptr<Storage> storage;
+  void SetUp() override { storage = std::make_unique<Storage>(opt); }
+  void TearDown() override {
+    storage.reset();
+    std::filesystem::remove_all(opt.sst_directory_);
+  }
 };
 
 TEST_F(StorageFlushTest, FlushTriggeredWhenThresholdExceeded) {
   // Put small entries that don't trigger flush
   auto key1 = MakeBytesVector("key1");
   auto value1 = MakeBytesVector("val1");
-  storage.put(key1, value1);
+  storage->put(key1, value1);
 
   auto key2 = MakeBytesVector("key2");
   auto value2 = MakeBytesVector("val2");
-  storage.put(key2, value2);
+  storage->put(key2, value2);
 
   // Put large entry that triggers flush
   auto key3 = MakeBytesVector("key3");
   auto value3 =
       MakeBytesVector(std::string(600, 'x')); // Large value exceeds threshold
-  storage.put(key3, value3);
+  storage->put(key3, value3);
 
   // Verify all data is still accessible (from active and immutable memtables)
-  EXPECT_EQ(BytesToString(storage.get(key1).value()), "val1");
-  EXPECT_EQ(BytesToString(storage.get(key2).value()), "val2");
-  EXPECT_EQ(storage.get(key3).value().size(), 600);
+  EXPECT_EQ(BytesToString(storage->get(key1).value()), "val1");
+  EXPECT_EQ(BytesToString(storage->get(key2).value()), "val2");
+  EXPECT_EQ(storage->get(key3).value().size(), 600);
 }
 
 TEST_F(StorageFlushTest, MultipleFlushesCumulativeData) {
@@ -97,13 +107,13 @@ TEST_F(StorageFlushTest, MultipleFlushesCumulativeData) {
     auto key = MakeBytesVector("key" + std::to_string(i));
     auto value = MakeBytesVector(
         std::string(400, 'a' + i)); // ~400 bytes each, triggers flush
-    storage.put(key, value);
+    storage->put(key, value);
   }
 
   // Verify all data from all memtables (active and immutables) is accessible
   for (int i = 0; i < 5; ++i) {
     auto key = MakeBytesVector("key" + std::to_string(i));
-    auto result = storage.get(key);
+    auto result = storage->get(key);
 
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result.value().size(), 400);
@@ -119,7 +129,13 @@ TEST_F(StorageFlushTest, MultipleFlushesCumulativeData) {
 class StorageTombstoneTest : public ::testing::Test {
 protected:
   StorageOption opt{1024};
-  Storage storage{opt};
+  std::unique_ptr<Storage> storage;
+
+  void SetUp() override { storage = std::make_unique<Storage>(opt); }
+  void TearDown() override {
+    storage.reset();
+    std::filesystem::remove_all(opt.sst_directory_);
+  }
 };
 
 TEST_F(StorageTombstoneTest, RemoveThenReAdd) {
@@ -128,16 +144,16 @@ TEST_F(StorageTombstoneTest, RemoveThenReAdd) {
   auto value2 = MakeBytesVector("value2_restored");
 
   // Put initial value
-  storage.put(key, value1);
-  EXPECT_EQ(BytesToString(storage.get(key).value()), "value1");
+  storage->put(key, value1);
+  EXPECT_EQ(BytesToString(storage->get(key).value()), "value1");
 
   // Remove (TOMBSTONE)
-  storage.remove(key);
-  EXPECT_FALSE(storage.get(key).has_value());
+  storage->remove(key);
+  EXPECT_FALSE(storage->get(key).has_value());
 
   // Re-add with new value
-  storage.put(key, value2);
-  auto result = storage.get(key);
+  storage->put(key, value2);
+  auto result = storage->get(key);
   ASSERT_TRUE(result.has_value());
   EXPECT_EQ(BytesToString(result.value()), "value2_restored");
 }
@@ -177,15 +193,21 @@ TEST_F(StorageTombstoneTest, TombstoneInActiveHidesImmutable) {
 class StorageConcurrentReaderTest : public ::testing::Test {
 protected:
   StorageOption opt{1024};
-  Storage storage{opt};
+  std::unique_ptr<Storage> storage;
 
   void SetUp() override {
     // Pre-populate storage with test data
+    storage = std::make_unique<Storage>(opt);
     for (int i = 0; i < 20; ++i) {
       auto key = MakeBytesVector("key" + std::to_string(i));
       auto value = MakeBytesVector("value" + std::to_string(i));
-      storage.put(key, value);
+      storage->put(key, value);
     }
+  }
+
+  void TearDown() override {
+    storage.reset();
+    std::filesystem::remove_all(opt.sst_directory_);
   }
 };
 
@@ -198,7 +220,7 @@ TEST_F(StorageConcurrentReaderTest, FourThreadsConcurrentReads) {
     threads.emplace_back([this, reads_per_thread]() {
       for (int i = 0; i < reads_per_thread; ++i) {
         auto key = MakeBytesVector("key" + std::to_string(i % 20));
-        auto result = storage.get(key);
+        auto result = storage->get(key);
 
         ASSERT_TRUE(result.has_value());
         std::string expected = "value" + std::to_string(i % 20);
@@ -219,7 +241,14 @@ TEST_F(StorageConcurrentReaderTest, FourThreadsConcurrentReads) {
 class StorageSequentialWriteTest : public ::testing::Test {
 protected:
   StorageOption opt{1024};
-  Storage storage{opt};
+  std::unique_ptr<Storage> storage;
+
+  void SetUp() override { storage = std::make_unique<Storage>(opt); }
+
+  void TearDown() override {
+    storage.reset();
+    std::filesystem::remove_all(opt.sst_directory_);
+  }
 };
 
 TEST_F(StorageSequentialWriteTest, SequentialWritesThenConcurrentReads) {
@@ -227,7 +256,7 @@ TEST_F(StorageSequentialWriteTest, SequentialWritesThenConcurrentReads) {
   for (int i = 0; i < 30; ++i) {
     auto key = MakeBytesVector("key" + std::to_string(i));
     auto value = MakeBytesVector("value" + std::to_string(i));
-    storage.put(key, value);
+    storage->put(key, value);
   }
 
   // Phase 2: 4 concurrent readers
@@ -239,7 +268,7 @@ TEST_F(StorageSequentialWriteTest, SequentialWritesThenConcurrentReads) {
     threads.emplace_back([this, reads_per_thread]() {
       for (int i = 0; i < reads_per_thread; ++i) {
         auto key = MakeBytesVector("key" + std::to_string(i % 30));
-        auto result = storage.get(key);
+        auto result = storage->get(key);
 
         ASSERT_TRUE(result.has_value());
         std::string expected = "value" + std::to_string(i % 30);
@@ -260,15 +289,21 @@ TEST_F(StorageSequentialWriteTest, SequentialWritesThenConcurrentReads) {
 class StorageReadHeavyTest : public ::testing::Test {
 protected:
   StorageOption opt{1024};
-  Storage storage{opt};
+  std::unique_ptr<Storage> storage;
 
   void SetUp() override {
     // Initial data population
+    storage = std::make_unique<Storage>(opt);
     for (int i = 0; i < 25; ++i) {
       auto key = MakeBytesVector("key" + std::to_string(i));
       auto value = MakeBytesVector("value" + std::to_string(i));
-      storage.put(key, value);
+      storage->put(key, value);
     }
+  }
+
+  void TearDown() override {
+    storage.reset();
+    std::filesystem::remove_all(opt.sst_directory_);
   }
 };
 
@@ -286,12 +321,12 @@ TEST_F(StorageReadHeavyTest, ReadHeavyMixedOperations) {
           int key_idx = 25 + t * 5 + (op / 5);
           auto key = MakeBytesVector("key" + std::to_string(key_idx));
           auto value = MakeBytesVector("updated_" + std::to_string(key_idx));
-          storage.put(key, value);
+          storage->put(key, value);
         } else {
           // Read operation
           int key_idx = op % 25;
           auto key = MakeBytesVector("key" + std::to_string(key_idx));
-          auto result = storage.get(key);
+          auto result = storage->get(key);
 
           // Key should exist (either original or updated)
           ASSERT_TRUE(result.has_value());
@@ -312,13 +347,12 @@ protected:
     std::filesystem::remove_all(sst_directory_);
     std::filesystem::create_directories(sst_directory_);
 
-    StorageOption opt{};
-    opt.mem_table_size_ = 4096;
-    opt.max_number_of_memtable_ = 3;
-    opt.max_sst_block_size_ = 1024;
-    opt.sst_directory_ = sst_directory_;
+    opt_.mem_table_size_ = 4096;
+    opt_.max_number_of_memtable_ = 3;
+    opt_.max_sst_block_size_ = 1024;
+    opt_.sst_directory_ = sst_directory_;
 
-    storage_ = std::make_unique<Storage>(opt);
+    storage_ = std::make_unique<Storage>(opt_);
   }
 
   void TearDown() override {
@@ -328,6 +362,7 @@ protected:
 
   std::filesystem::path sst_directory_;
   std::unique_ptr<Storage> storage_;
+  StorageOption opt_;
 };
 
 TEST_F(StorageFlushRunTest, FlushRunPersistsAllEntries) {
@@ -382,5 +417,29 @@ TEST_F(StorageFlushRunTest, RetrieveLastestVersion) {
 
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(BytesToString(result.value()), expected_value);
+  }
+}
+
+TEST_F(StorageFlushRunTest, FlushMemtableAtClose) {
+  constexpr int total_entries = 500;
+
+  for (int i = 0; i < total_entries; ++i) {
+    auto key = MakeBytesVector("key" + std::to_string(i));
+    auto value = MakeBytesVector("value" + std::to_string(i));
+    storage_->put(key, value);
+  }
+
+  storage_->close();
+
+  {
+    auto verify_storage = Storage(opt_);
+    for (int i = 0; i < total_entries; ++i) {
+      auto key = MakeBytesVector("key" + std::to_string(i));
+      auto expected_value = "value" + std::to_string(i);
+      auto result = verify_storage.get(key);
+
+      ASSERT_TRUE(result.has_value());
+      EXPECT_EQ(BytesToString(result.value()), expected_value);
+    }
   }
 }

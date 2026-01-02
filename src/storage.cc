@@ -1,6 +1,7 @@
 #include "storage.hpp"
 #include "memtable.hpp"
 #include "sst/sst_builder.hpp"
+#include "utils.hpp"
 #include <algorithm>
 #include <chrono>
 #include <format>
@@ -82,6 +83,27 @@ void Storage::flush_thread() {
   }
 }
 
+void Storage::recover() {
+  auto sst_pattern = opt_.sst_directory_ / "sst_*";
+  auto sst_paths = glob_paths(sst_pattern);
+
+  if (sst_paths.empty()) {
+    latest_table_id_ = 0;
+    return;
+  }
+
+  for (auto &path : sst_paths) {
+    sst_.emplace_back(std::make_unique<SST>(path));
+  }
+
+  std::sort(sst_.begin(), sst_.end(),
+            [](const std::unique_ptr<SST> &a, const std::unique_ptr<SST> &b) {
+              return a->get_id() < b->get_id();
+            });
+
+  latest_table_id_ = sst_.back()->get_id() + 1;
+}
+
 void Storage::flush_run() {
   std::vector<std::shared_ptr<MemTable>> flush_memtables;
   int flush_memtable_count = 0;
@@ -126,5 +148,6 @@ uint64_t Storage::get_current_table_id() { return latest_table_id_; }
 
 Storage::~Storage() {
   // TODO: release the unique_ptr, shared_ptr?
-  close();
+  if (!stopped_.load(std::memory_order_acquire))
+    close();
 }

@@ -48,6 +48,7 @@ public:
   const std::vector<BlockMetadata> &get_block_metadata() const;
   Block get_block(size_t block_idx) const;
   size_t number_of_block() const;
+  uint64_t get_id() const;
 
 private:
   static const uint32_t NUMBER_OF_BLOCK_VAL_SIZE = 8;

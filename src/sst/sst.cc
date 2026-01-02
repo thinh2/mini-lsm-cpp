@@ -37,6 +37,8 @@ Block SST::get_block(size_t block_idx) const {
 
 size_t SST::number_of_block() const { return block_metadata_.size(); }
 
+uint64_t SST::get_id() const { return id_; }
+
 void SST::read_block_metadata() {
   std::vector<std::byte> buffer;
   // read number of block

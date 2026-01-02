@@ -1,8 +1,10 @@
 #pragma once
 #include <array>
 #include <cstddef>
+#include <filesystem>
+#include <glob.h>
 #include <span>
-
+#include <vector>
 inline std::array<std::byte, 2> encode_uint16_t(uint16_t val) {
   std::array<std::byte, 2> res;
   res[0] = std::byte(val >> 8);
@@ -32,4 +34,16 @@ inline uint64_t decode_uint64_t(std::span<const std::byte, 8> byte_views) {
                   static_cast<uint64_t>(std::to_integer<uint8_t>(val));
   }
   return decoded_val;
+}
+
+inline std::vector<std::filesystem::path>
+glob_paths(const std::string &pattern) {
+  glob_t g{};
+  std::vector<std::filesystem::path> matches;
+  if (glob(pattern.c_str(), GLOB_TILDE, nullptr, &g) == 0) {
+    for (size_t i = 0; i < g.gl_pathc; ++i)
+      matches.emplace_back(g.gl_pathv[i]);
+  }
+  globfree(&g);
+  return matches;
 }
