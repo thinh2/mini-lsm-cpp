@@ -12,14 +12,18 @@
 using MemTableStorage =
     std::map<std::vector<std::byte>, std::vector<std::byte>>;
 
+class SST;
 class ImmutableMemTableIterator;
+class SSTConfig;
 
+// TODO: create two class ImmutableMemTable and MutableMemTable.
+// ImmutableMemTable can only be read.
 class MemTable {
 public:
   enum class Status { Mutable, Immutable };
 
 public:
-  MemTable(uint64_t size);
+  MemTable(uint64_t size, uint64_t id = 0);
   std::optional<std::vector<std::byte>> get(const std::vector<std::byte> &key);
   void put(const std::vector<std::byte> &key,
            const std::vector<std::byte> &value);
@@ -35,12 +39,15 @@ public:
 
   ImmutableMemTableIterator get_iteartor();
 
+  SST flush(SSTConfig &sst_config);
+
 private:
   std::shared_ptr<MemTableStorage> storage_;
   std::shared_mutex shared_mu_;
   std::uint64_t approximate_size_;
   std::uint64_t cap_size_;
   Status status_;
+  uint64_t id_;
 };
 
 // support immutable/freezed memtable iterator only.

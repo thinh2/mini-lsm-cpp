@@ -8,6 +8,7 @@ class BlockMetadata;
 
 struct SSTConfig {
   size_t block_size_;
+  std::filesystem::path sst_directory_;
 };
 
 class SSTBuilder {

@@ -1,4 +1,5 @@
 #include "storage.hpp"
+#include "memtable.hpp"
 #include "sst/sst_builder.hpp"
 #include <algorithm>
 #include <chrono>
@@ -10,7 +11,8 @@ void Storage::put(std::vector<std::byte> &key, std::vector<std::byte> &value) {
   if (record_size + active_memtable_->size() > opt_.mem_table_size_) {
     active_memtable_->freeze();
     immutable_memtable_.push_back(std::move(active_memtable_));
-    active_memtable_ = std::make_unique<MemTable>(opt_.mem_table_size_);
+    active_memtable_ =
+        std::make_unique<MemTable>(opt_.mem_table_size_, latest_table_id_++);
   }
 
   active_memtable_->put(key, value);
@@ -56,22 +58,10 @@ void Storage::remove(std::vector<std::byte> &key) { put(key, TOMBSTONE); }
 std::vector<std::unique_ptr<SST>>
 Storage::flush_to_SST(std::vector<std::shared_ptr<MemTable>> &mem_table_ptr) {
   std::vector<std::unique_ptr<SST>> new_sst;
-  SSTConfig sst_config{.block_size_ = opt_.max_sst_block_size_};
+  SSTConfig sst_config{.block_size_ = opt_.max_sst_block_size_,
+                       .sst_directory_ = opt_.sst_directory_};
   for (auto &mem_table : mem_table_ptr) {
-    sst_id++;
-    auto filename = std::format(sst_file_format, sst_id);
-    std::filesystem::path sst_path = opt_.sst_directory_.empty()
-                                         ? std::filesystem::path(filename)
-                                         : opt_.sst_directory_ / filename;
-    SSTBuilder sst_builder(sst_path, sst_config);
-    auto mem_table_iter = mem_table->get_iteartor();
-    while (mem_table_iter.is_valid()) {
-      auto key = mem_table_iter.key();
-      auto value = mem_table_iter.value();
-      sst_builder.add_entry(key, value);
-      mem_table_iter.next();
-    }
-    new_sst.emplace_back(std::make_unique<SST>(sst_builder.build()));
+    new_sst.emplace_back(std::make_unique<SST>(mem_table->flush(sst_config)));
   }
   return new_sst;
 }

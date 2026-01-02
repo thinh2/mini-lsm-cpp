@@ -1,8 +1,12 @@
 #include "memtable.hpp"
-
+#include "sst/sst.hpp"
+#include "sst/sst_builder.hpp"
+#include <filesystem>
+#include <format>
 #include <mutex>
-MemTable::MemTable(uint64_t size)
-    : approximate_size_(0), cap_size_(size), status_(Status::Mutable) {
+
+MemTable::MemTable(uint64_t size, uint64_t id)
+    : approximate_size_(0), cap_size_(size), status_(Status::Mutable), id_(id) {
   storage_ = std::make_shared<MemTableStorage>();
 }
 
@@ -39,6 +43,23 @@ ImmutableMemTableIterator MemTable::get_iteartor() {
   return ImmutableMemTableIterator{storage_};
 }
 
+SST MemTable::flush(SSTConfig &sst_config) {
+  auto filename = std::format("sst_{}", id_);
+  const std::filesystem::path sst_path =
+      sst_config.sst_directory_.empty() ? std::filesystem::path(filename)
+                                        : sst_config.sst_directory_ / filename;
+  SSTBuilder sst_builder(sst_path, sst_config);
+  auto mem_table_iter = get_iteartor();
+  while (mem_table_iter.is_valid()) {
+    auto key = mem_table_iter.key();
+    auto value = mem_table_iter.value();
+    sst_builder.add_entry(key, value);
+    mem_table_iter.next();
+  }
+
+  return sst_builder.build();
+}
+
 ImmutableMemTableIterator::ImmutableMemTableIterator(
     std::shared_ptr<MemTableStorage> storage)
     : storage_(storage) {
@@ -66,5 +87,7 @@ std::vector<std::byte> ImmutableMemTableIterator::value() {
 void ImmutableMemTableIterator::next() {
   if (curr_it_ != storage_->end()) {
     curr_it_ = std::next(curr_it_);
+    if (curr_it_ == storage_->end())
+      return;
   }
 }
