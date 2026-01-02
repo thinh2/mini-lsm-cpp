@@ -5,7 +5,12 @@
 #include <chrono>
 #include <format>
 #include <mutex>
+
 void Storage::put(std::vector<std::byte> &key, std::vector<std::byte> &value) {
+  if (stopped_.load(std::memory_order_acquire)) {
+    throw std::runtime_error("storage stopped");
+  }
+
   uint64_t record_size = key.size() + value.size();
   std::lock_guard lk{mu_};
   if (record_size + active_memtable_->size() > opt_.mem_table_size_) {
@@ -20,6 +25,10 @@ void Storage::put(std::vector<std::byte> &key, std::vector<std::byte> &value) {
 
 std::optional<std::vector<std::byte>>
 Storage::get(std::vector<std::byte> &key) {
+  if (stopped_.load(std::memory_order_acquire)) {
+    throw std::runtime_error("storage stopped");
+  }
+
   std::shared_lock lk{mu_};
   std::optional<std::vector<std::byte>> value_slice;
   value_slice = active_memtable_->get(key);
@@ -67,7 +76,7 @@ Storage::flush_to_SST(std::vector<std::shared_ptr<MemTable>> &mem_table_ptr) {
 }
 
 void Storage::flush_thread() {
-  while (!stopped_.load(std::memory_order_relaxed)) {
+  while (!stopped_.load(std::memory_order_acquire)) {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
     flush_run();
   }
@@ -102,8 +111,20 @@ void Storage::flush_run() {
   }
 }
 
-Storage::~Storage() {
-  stopped_.store(true, std::memory_order_relaxed);
+void Storage::close() {
+  stopped_.store(true, std::memory_order_release);
   flush_thread_.join();
+  flush_to_SST(immutable_memtable_);
+
+  active_memtable_->freeze();
+  SSTConfig sst_config{.block_size_ = opt_.max_sst_block_size_,
+                       .sst_directory_ = opt_.sst_directory_};
+  active_memtable_->flush(sst_config);
+}
+
+uint64_t Storage::get_current_table_id() { return latest_table_id_; }
+
+Storage::~Storage() {
   // TODO: release the unique_ptr, shared_ptr?
+  close();
 }

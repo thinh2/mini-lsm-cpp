@@ -5,8 +5,10 @@
 #include "utils.hpp"
 #include <filesystem>
 #include <memory>
+#include <ranges>
 
 SST::SST(const std::filesystem::path &file_name) {
+  id_ = parse_id_from_file_name(file_name);
   io_ = std::make_unique<FileReader>(file_name);
   read_block_metadata();
 }
@@ -105,6 +107,23 @@ std::vector<std::byte> SST::decode_var_string(size_t offset) {
   buffer.resize(string_len);
   io_->read(offset, string_len, buffer);
   return buffer;
+}
+
+uint64_t SST::parse_id_from_file_name(const std::filesystem::path &file_name) {
+  const auto filename = file_name.filename().string();
+  auto parts = filename | std::views::split('_');
+
+  auto part_it = parts.begin();
+  if (part_it == parts.end() || ++part_it == parts.end()) {
+    throw std::runtime_error("invalid SST filename; expected sst_<id>");
+  }
+
+  std::string id_str;
+  for (char ch : *part_it) {
+    id_str.push_back(ch);
+  }
+
+  return std::stoull(id_str);
 }
 
 std::vector<std::byte> BlockMetadata::encode() {

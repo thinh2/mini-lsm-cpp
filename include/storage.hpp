@@ -33,6 +33,8 @@ public:
   void remove(std::vector<std::byte> &key);
 
   void flush_run();
+  void close();
+  uint64_t get_current_table_id();
   ~Storage();
 
 private:

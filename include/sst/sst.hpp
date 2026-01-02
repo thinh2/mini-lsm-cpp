@@ -58,8 +58,10 @@ private:
   Block read_block(const BlockMetadata &) const;
   uint64_t decode_uint64(size_t offset);
   std::vector<std::byte> decode_var_string(size_t offset);
+  uint64_t parse_id_from_file_name(const std::filesystem::path &file_name);
 
 private:
   std::vector<BlockMetadata> block_metadata_;
   std::unique_ptr<FileReader> io_;
+  uint64_t id_;
 };
