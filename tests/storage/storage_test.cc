@@ -22,6 +22,7 @@ protected:
   void TearDown() override {
     storage.reset();
     std::filesystem::remove_all(opt.sst_directory_);
+    std::filesystem::remove(opt.manifest_path_);
   }
   StorageOption opt{1024}; // 1KB memtable size
   std::unique_ptr<Storage> storage;
@@ -76,6 +77,7 @@ protected:
   void TearDown() override {
     storage.reset();
     std::filesystem::remove_all(opt.sst_directory_);
+    std::filesystem::remove(opt.manifest_path_);
   }
 };
 
@@ -135,6 +137,7 @@ protected:
   void TearDown() override {
     storage.reset();
     std::filesystem::remove_all(opt.sst_directory_);
+    std::filesystem::remove(opt.manifest_path_);
   }
 };
 
@@ -208,6 +211,7 @@ protected:
   void TearDown() override {
     storage.reset();
     std::filesystem::remove_all(opt.sst_directory_);
+    std::filesystem::remove(opt.manifest_path_);
   }
 };
 
@@ -248,6 +252,7 @@ protected:
   void TearDown() override {
     storage.reset();
     std::filesystem::remove_all(opt.sst_directory_);
+    std::filesystem::remove(opt.manifest_path_);
   }
 };
 
@@ -304,6 +309,7 @@ protected:
   void TearDown() override {
     storage.reset();
     std::filesystem::remove_all(opt.sst_directory_);
+    std::filesystem::remove(opt.manifest_path_);
   }
 };
 
@@ -358,6 +364,7 @@ protected:
   void TearDown() override {
     storage_.reset();
     std::filesystem::remove_all(sst_directory_);
+    std::filesystem::remove(opt_.manifest_path_);
   }
 
   std::filesystem::path sst_directory_;

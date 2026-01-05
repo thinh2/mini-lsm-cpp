@@ -23,12 +23,12 @@ public:
   recover(const std::filesystem::path &path);
   void add_record(const ManifestRecord &record);
 
-  Manifest(const Manifest &other) = delete;
-  Manifest(Manifest &&other) = default;
-  Manifest &operator=(const Manifest &) = delete; // No copy assignment
-  Manifest &operator=(Manifest &&) = default;     // Move assignment
+  Manifest() = default;
+  //  Manifest(const Manifest &other) = delete;
+  //  Manifest(Manifest &&other) = default;
+  //  Manifest &operator=(const Manifest &) = delete; // No copy assignment
+  //  Manifest &operator=(Manifest &&) = default;     // Move assignment
 private:
-  Manifest() = delete;
   Manifest(const std::filesystem::path &path);
 
 private:

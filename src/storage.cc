@@ -6,14 +6,17 @@
 #include <chrono>
 #include <format>
 #include <mutex>
+#include <string_view>
 
 Storage::Storage(StorageOption opt)
-    : opt_(std::move(opt)), latest_table_id_(0) {
+    : opt_(std::move(opt)), latest_table_id_(0), active_memtable_(nullptr) {
   if (!opt_.sst_directory_.empty()) {
     std::filesystem::create_directories(opt_.sst_directory_);
   }
 
-  recover();
+  auto [manifest, manifest_records] = Manifest::recover(opt_.manifest_path_);
+  manifest_ = std::move(manifest);
+  recover(manifest_records);
 
   active_memtable_ =
       std::make_unique<MemTable>(opt_.mem_table_size_, latest_table_id_++);
@@ -93,20 +96,22 @@ Storage::flush_to_SST(std::vector<std::shared_ptr<MemTable>> &mem_table_ptr) {
 void Storage::flush_thread() {
   while (!stopped_.load(std::memory_order_acquire)) {
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    flush_run();
+    flush_run(false);
   }
 }
 
-void Storage::recover() {
-  auto sst_pattern = opt_.sst_directory_ / "sst_*";
-  auto sst_paths = glob_paths(sst_pattern);
+void Storage::recover(const std::vector<ManifestRecord> &manifest_records) {
+  auto sst_pattern = opt_.sst_directory_ / "sst_{}";
+  auto sst_pattern_view = sst_pattern.string();
 
-  if (sst_paths.empty()) {
+  if (manifest_records.empty()) {
     latest_table_id_ = 0;
     return;
   }
 
-  for (auto &path : sst_paths) {
+  for (auto &record : manifest_records) {
+    auto path =
+        std::vformat(sst_pattern_view, std::make_format_args(record.id_));
     sst_.emplace_back(std::make_unique<SST>(path));
   }
 
@@ -118,27 +123,35 @@ void Storage::recover() {
   latest_table_id_ = sst_.back()->get_id() + 1;
 }
 
-void Storage::flush_run() {
+void Storage::flush_run(bool flush_all) {
   std::vector<std::shared_ptr<MemTable>> flush_memtables;
   int flush_memtable_count = 0;
 
   {
     std::shared_lock lk{mu_};
-    flush_memtable_count =
-        std::max(static_cast<int>(immutable_memtable_.size()) -
-                     static_cast<int>(opt_.max_number_of_memtable_),
-                 0);
-    if (!flush_memtable_count)
-      return;
-    flush_memtables = std::vector<std::shared_ptr<MemTable>>(
-        immutable_memtable_.begin(),
-        immutable_memtable_.begin() + flush_memtable_count);
+    if (flush_all) {
+      flush_memtables = immutable_memtable_;
+    } else {
+      flush_memtable_count =
+          std::max(static_cast<int>(immutable_memtable_.size()) -
+                       static_cast<int>(opt_.max_number_of_memtable_),
+                   0);
+      if (!flush_memtable_count)
+        return;
+      flush_memtables = std::vector<std::shared_ptr<MemTable>>(
+          immutable_memtable_.begin(),
+          immutable_memtable_.begin() + flush_memtable_count);
+    }
   }
 
   auto sst = flush_to_SST(flush_memtables);
 
   {
     std::lock_guard lk{mu_};
+    for (auto &table : sst) {
+      manifest_.add_record(
+          {.id_ = table->get_id(), .type_ = ManifestRecordType::SST});
+    }
     sst_.insert(sst_.end(), std::make_move_iterator(sst.begin()),
                 std::make_move_iterator(sst.end()));
     immutable_memtable_.erase(immutable_memtable_.begin(),
@@ -150,12 +163,10 @@ void Storage::flush_run() {
 void Storage::close() {
   stopped_.store(true, std::memory_order_release);
   flush_thread_.join();
-  flush_to_SST(immutable_memtable_);
 
   active_memtable_->freeze();
-  SSTConfig sst_config{.block_size_ = opt_.max_sst_block_size_,
-                       .sst_directory_ = opt_.sst_directory_};
-  active_memtable_->flush(sst_config);
+  immutable_memtable_.push_back(std::move(active_memtable_));
+  flush_run(true);
 }
 
 uint64_t Storage::get_current_table_id() { return latest_table_id_; }

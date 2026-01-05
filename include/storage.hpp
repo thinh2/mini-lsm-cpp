@@ -1,4 +1,5 @@
 #pragma once
+#include "manifest/manifest.hpp"
 #include "memtable.hpp"
 #include "sst/sst.hpp"
 #include <filesystem>
@@ -12,6 +13,7 @@ struct StorageOption {
   std::uint64_t max_number_of_memtable_{2};
   std::uint64_t max_sst_block_size_{1024};
   std::filesystem::path sst_directory_{"./sst"};
+  std::filesystem::path manifest_path_{"./manifest.json"};
 };
 
 class SST;
@@ -25,7 +27,7 @@ public:
   std::optional<std::vector<std::byte>> get(std::vector<std::byte> &key);
   void remove(std::vector<std::byte> &key);
 
-  void flush_run();
+  void flush_run(bool flush_all = false);
   uint64_t get_current_table_id();
   ~Storage();
 
@@ -34,7 +36,7 @@ private:
   std::vector<std::unique_ptr<SST>>
   flush_to_SST(std::vector<std::shared_ptr<MemTable>> &mem_table_ptr);
   void flush_thread();
-  void recover();
+  void recover(const std::vector<ManifestRecord> &);
 
 private:
   StorageOption opt_;
@@ -44,6 +46,7 @@ private:
   std::shared_mutex mu_;
 
   uint64_t latest_table_id_;
+  Manifest manifest_;
   std::atomic<bool> stopped_;
   std::thread flush_thread_;
 };
