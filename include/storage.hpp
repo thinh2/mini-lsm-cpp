@@ -18,18 +18,7 @@ class SST;
 
 class Storage {
 public:
-  Storage(StorageOption opt) : opt_(std::move(opt)), latest_table_id_(0) {
-    if (!opt_.sst_directory_.empty()) {
-      std::filesystem::create_directories(opt_.sst_directory_);
-    }
-
-    recover();
-
-    active_memtable_ =
-        std::make_unique<MemTable>(opt_.mem_table_size_, latest_table_id_++);
-    stopped_.store(false, std::memory_order_relaxed);
-    flush_thread_ = std::thread([this]() { this->flush_thread(); });
-  };
+  Storage(StorageOption opt);
 
   void close();
   void put(std::vector<std::byte> &key, std::vector<std::byte> &value);
@@ -55,7 +44,6 @@ private:
   std::shared_mutex mu_;
 
   uint64_t latest_table_id_;
-
   std::atomic<bool> stopped_;
   std::thread flush_thread_;
 };

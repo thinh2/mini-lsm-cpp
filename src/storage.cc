@@ -7,6 +7,20 @@
 #include <format>
 #include <mutex>
 
+Storage::Storage(StorageOption opt)
+    : opt_(std::move(opt)), latest_table_id_(0) {
+  if (!opt_.sst_directory_.empty()) {
+    std::filesystem::create_directories(opt_.sst_directory_);
+  }
+
+  recover();
+
+  active_memtable_ =
+      std::make_unique<MemTable>(opt_.mem_table_size_, latest_table_id_++);
+  stopped_.store(false, std::memory_order_relaxed);
+  flush_thread_ = std::thread([this]() { this->flush_thread(); });
+};
+
 void Storage::put(std::vector<std::byte> &key, std::vector<std::byte> &value) {
   if (stopped_.load(std::memory_order_acquire)) {
     throw std::runtime_error("storage stopped");
