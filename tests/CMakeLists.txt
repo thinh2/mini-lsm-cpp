@@ -85,3 +85,18 @@ target_include_directories(manifest_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(manifest_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
 add_test(NAME manifest_test COMMAND manifest_test)
 
+# wal test
+add_executable(wal_test
+    wal/wal_test.cc
+)
+
+target_link_libraries(wal_test
+    mini_lsm
+    gtest_main
+)
+
+target_include_directories(wal_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(wal_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
+add_test(NAME wal_test COMMAND wal_test)
+
+

@@ -32,6 +32,7 @@ set(SOURCES
     src/io/file_writer.cc
     src/sst/sst_iterator.cc
     src/manifest/manifest.cc
+    src/wal/wal.cc
 )
 
 set(HEADERS
@@ -46,6 +47,7 @@ set(HEADERS
     include/sst/sst_builder.hpp
     include/sst/sst_iterator.hpp
     include/manifest/manifest.hpp
+    include/wal/wal.hpp
 )
 
 # Main library
