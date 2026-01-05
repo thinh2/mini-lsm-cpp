@@ -18,6 +18,9 @@ public:
   void close();
   void flush();
   uint64_t file_size();
+
+  // compiler does not explicitly implement move constructor if there is a
+  // custom destructor
   ~FileWriter();
 
 private:

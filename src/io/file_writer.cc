@@ -2,17 +2,17 @@
 
 #include <cerrno>
 #include <fcntl.h>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <system_error>
 #include <unistd.h>
-
 namespace {
 
 int open_file(const fs::path &path) {
-  int flags = O_WRONLY | O_CREAT | O_TRUNC;
+  int flags = O_WRONLY | O_CREAT | O_APPEND;
 #ifdef O_CLOEXEC
   flags |= O_CLOEXEC;
 #endif

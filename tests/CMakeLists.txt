@@ -70,3 +70,18 @@ target_link_libraries(encode_test
 target_include_directories(encode_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(encode_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
 add_test(NAME encode_test COMMAND io_test)
+
+# manifest test
+add_executable(manifest_test
+    manifest/manifest_test.cc
+)
+
+target_link_libraries(manifest_test
+    mini_lsm
+    gtest_main
+)
+
+target_include_directories(manifest_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(manifest_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
+add_test(NAME manifest_test COMMAND manifest_test)
+

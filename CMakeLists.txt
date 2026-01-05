@@ -11,6 +11,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+FetchContent_Declare(
+  json 
+  URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+)
+
+FetchContent_MakeAvailable(json)
+
+
 # Source files
 set(SOURCES
     src/memtable.cc
@@ -21,7 +29,9 @@ set(SOURCES
     src/sst/sst.cc
     src/sst/sst_builder.cc
     src/io/file_reader.cc
+    src/io/file_writer.cc
     src/sst/sst_iterator.cc
+    src/manifest/manifest.cc
 )
 
 set(HEADERS
@@ -32,13 +42,16 @@ set(HEADERS
     include/sst/block_builder.hpp
     include/sst/sst.hpp
     include/io/file_reader.hpp
+    include/io/file_writer.hpp
     include/sst/sst_builder.hpp
     include/sst/sst_iterator.hpp
+    include/manifest/manifest.hpp
 )
 
 # Main library
 add_library(mini_lsm ${SOURCES} ${HEADERS})
 target_include_directories(mini_lsm PUBLIC include)
+target_link_libraries(mini_lsm PRIVATE nlohmann_json::nlohmann_json)
 
 # Executable
 #add_executable(mini_lsm_app src/main.cpp)
