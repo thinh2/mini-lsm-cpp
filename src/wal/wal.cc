@@ -17,9 +17,13 @@ std::vector<std::byte> WALRecord::encode() const {
 WAL::WAL(const std::filesystem::path &path)
     : writer_(std::make_unique<FileWriter>(path)) {}
 
-void WAL::add_record(const WALRecord &wal_record) {
+void WAL::add_record_and_sync(const WALRecord &wal_record) {
   auto encoded_record = wal_record.encode();
   writer_->append_and_sync(encoded_record);
+}
+
+void WAL::add_record(const WALRecord &wal_record) {
+  records_.push_back(wal_record);
 }
 
 std::vector<WALRecord> WAL::read_wal(const std::filesystem::path &path) {
@@ -59,4 +63,15 @@ std::vector<WALRecord> WAL::read_wal(const std::filesystem::path &path) {
   }
 
   return wal_records_;
+}
+
+WAL::~WAL() {
+  if (!records_.empty()) {
+    std::vector<std::byte> encoded_records;
+    for (auto &record : records_) {
+      encoded_records.append_range(record.encode());
+    }
+    writer_->append_and_sync(encoded_records);
+  }
+  writer_.reset();
 }

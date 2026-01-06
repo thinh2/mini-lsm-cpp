@@ -25,7 +25,7 @@ TEST_F(WALTest, AddRecordTest) {
       {MakeBytesVector("key_3"), MakeBytesVector("value_3")},
   };
   for (auto &record : records) {
-    wal_->add_record(record);
+    wal_->add_record_and_sync(record);
   }
   wal_.reset();
 

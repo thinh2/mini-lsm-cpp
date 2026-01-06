@@ -21,10 +21,12 @@ class FileWriter;
 class WAL {
 public:
   WAL(const std::filesystem::path &);
+  void add_record_and_sync(const WALRecord &wal_record);
   void add_record(const WALRecord &wal_record);
-
   static std::vector<WALRecord> read_wal(const std::filesystem::path &);
+  ~WAL();
 
 private:
   std::unique_ptr<FileWriter> writer_;
+  std::vector<WALRecord> records_;
 };
