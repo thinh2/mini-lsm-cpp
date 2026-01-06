@@ -2,6 +2,7 @@
 
 #include "iterator.hpp"
 #include <cstddef>
+#include <filesystem>
 #include <map>
 #include <mutex>
 #include <optional>
@@ -23,6 +24,10 @@ public:
   enum class Status { Mutable, Immutable };
 
 public:
+  static std::unique_ptr<MemTable> recover(const std::filesystem::path &path,
+                                           uint64_t id, uint64_t cap_size);
+
+public:
   MemTable(uint64_t size, uint64_t id = 0);
   std::optional<std::vector<std::byte>> get(const std::vector<std::byte> &key);
   void put(const std::vector<std::byte> &key,
@@ -40,6 +45,7 @@ public:
   ImmutableMemTableIterator get_iteartor();
 
   SST flush(SSTConfig &sst_config);
+  uint64_t get_id();
 
 private:
   std::shared_ptr<MemTableStorage> storage_;

@@ -1,9 +1,21 @@
 #include "memtable.hpp"
 #include "sst/sst.hpp"
 #include "sst/sst_builder.hpp"
+#include "wal/wal.hpp"
 #include <filesystem>
 #include <format>
 #include <mutex>
+
+std::unique_ptr<MemTable> MemTable::recover(const std::filesystem::path &path,
+                                            uint64_t id, uint64_t cap_size) {
+  auto records = WAL::read_wal(path);
+  auto mem_table = std::make_unique<MemTable>(cap_size, id);
+  for (auto &record : records) {
+    mem_table->put(record.key_, record.value_);
+  }
+  mem_table->freeze();
+  return mem_table;
+}
 
 MemTable::MemTable(uint64_t size, uint64_t id)
     : approximate_size_(0), cap_size_(size), status_(Status::Mutable), id_(id) {
@@ -58,6 +70,11 @@ SST MemTable::flush(SSTConfig &sst_config) {
   }
 
   return sst_builder.build();
+}
+
+uint64_t MemTable::get_id() {
+  std::shared_lock lk{shared_mu_};
+  return id_;
 }
 
 ImmutableMemTableIterator::ImmutableMemTableIterator(

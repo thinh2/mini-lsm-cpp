@@ -109,25 +109,59 @@ void Storage::recover(const std::vector<ManifestRecord> &manifest_records) {
   auto sst_pattern = opt_.sst_directory_ / "sst_{}";
   auto sst_pattern_view = sst_pattern.string();
 
+  auto wal_pattern = opt_.wal_directory_ / "{}.wal";
+  auto wal_pattern_view = wal_pattern.string();
+
   if (manifest_records.empty()) {
     latest_table_id_ = 0;
     return;
   }
 
+  std::map<size_t, ManifestRecordType> manifest_index_;
   for (auto &record : manifest_records) {
-    if (record.type_ != ManifestRecordType::SST)
+    switch (record.type_) {
+    case ManifestRecordType::SST: {
+      manifest_index_[record.id_] = record.type_;
       continue;
-    auto path =
-        std::vformat(sst_pattern_view, std::make_format_args(record.id_));
-    sst_.emplace_back(std::make_unique<SST>(path));
+    }
+    case ManifestRecordType::WAL: {
+      if (!manifest_index_.contains(record.id_)) {
+        manifest_index_[record.id_] = record.type_;
+      }
+      continue;
+    }
+    default: {
+      throw std::runtime_error("unsupport ManifestRecordType");
+    }
+    }
   }
 
-  std::sort(sst_.begin(), sst_.end(),
-            [](const std::unique_ptr<SST> &a, const std::unique_ptr<SST> &b) {
-              return a->get_id() < b->get_id();
-            });
+  for (auto &[record_id, record_type] : manifest_index_) {
+    switch (record_type) {
+    case ManifestRecordType::SST: {
+      auto path =
+          std::vformat(sst_pattern_view, std::make_format_args(record_id));
+      sst_.emplace_back(std::make_unique<SST>(path));
+      continue;
+    }
+    case ManifestRecordType::WAL: {
+      auto path =
+          std::vformat(wal_pattern_view, std::make_format_args(record_id));
+      immutable_memtable_.emplace_back(
+          MemTable::recover(path, record_id, opt_.mem_table_size_));
+      continue;
+    }
+    }
+  }
 
-  latest_table_id_ = sst_.size() > 0 ? sst_.back()->get_id() + 1 : 1;
+  if (!sst_.empty()) {
+    latest_table_id_ = sst_.back()->get_id() + 1;
+  }
+
+  if (!immutable_memtable_.empty()) {
+    latest_table_id_ =
+        std::max(latest_table_id_, immutable_memtable_.back()->get_id() + 1);
+  }
 }
 
 void Storage::new_active_memtable() {
