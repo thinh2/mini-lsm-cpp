@@ -9,6 +9,7 @@ using json = nlohmann::json;
 NLOHMANN_JSON_SERIALIZE_ENUM(ManifestRecordType,
                              {
                                  {ManifestRecordType::SST, "sst"},
+                                 {ManifestRecordType::WAL, "wal"},
                              });
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ManifestRecord, type_, id_);
 

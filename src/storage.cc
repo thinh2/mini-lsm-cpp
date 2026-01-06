@@ -9,7 +9,8 @@
 #include <string_view>
 
 Storage::Storage(StorageOption opt)
-    : opt_(std::move(opt)), latest_table_id_(0), active_memtable_(nullptr) {
+    : opt_(std::move(opt)), latest_table_id_(0), active_memtable_(nullptr),
+      active_wal_(nullptr) {
   if (!opt_.sst_directory_.empty()) {
     std::filesystem::create_directories(opt_.sst_directory_);
   }
@@ -18,8 +19,7 @@ Storage::Storage(StorageOption opt)
   manifest_ = std::move(manifest);
   recover(manifest_records);
 
-  active_memtable_ =
-      std::make_unique<MemTable>(opt_.mem_table_size_, latest_table_id_++);
+  new_active_memtable();
   stopped_.store(false, std::memory_order_relaxed);
   flush_thread_ = std::thread([this]() { this->flush_thread(); });
 };
@@ -34,8 +34,13 @@ void Storage::put(std::vector<std::byte> &key, std::vector<std::byte> &value) {
   if (record_size + active_memtable_->size() > opt_.mem_table_size_) {
     active_memtable_->freeze();
     immutable_memtable_.push_back(std::move(active_memtable_));
-    active_memtable_ =
-        std::make_unique<MemTable>(opt_.mem_table_size_, latest_table_id_++);
+    new_active_memtable();
+  }
+
+  if (opt_.wal_sync_option == WALSyncOption::SYNC_ON_WRITE) {
+    active_wal_->add_record_and_sync({.key_ = key, .value_ = value});
+  } else {
+    active_wal_->add_record({.key_ = key, .value_ = value});
   }
 
   active_memtable_->put(key, value);
@@ -110,6 +115,8 @@ void Storage::recover(const std::vector<ManifestRecord> &manifest_records) {
   }
 
   for (auto &record : manifest_records) {
+    if (record.type_ != ManifestRecordType::SST)
+      continue;
     auto path =
         std::vformat(sst_pattern_view, std::make_format_args(record.id_));
     sst_.emplace_back(std::make_unique<SST>(path));
@@ -120,7 +127,18 @@ void Storage::recover(const std::vector<ManifestRecord> &manifest_records) {
               return a->get_id() < b->get_id();
             });
 
-  latest_table_id_ = sst_.back()->get_id() + 1;
+  latest_table_id_ = sst_.size() > 0 ? sst_.back()->get_id() + 1 : 1;
+}
+
+void Storage::new_active_memtable() {
+  latest_table_id_++;
+  active_memtable_ =
+      std::make_unique<MemTable>(opt_.mem_table_size_, latest_table_id_);
+  auto wal_path =
+      opt_.wal_directory_ / (std::to_string(latest_table_id_) + ".wal");
+  active_wal_ = std::make_unique<WAL>(wal_path);
+  manifest_.add_record(
+      {.id_ = latest_table_id_, .type_ = ManifestRecordType::WAL});
 }
 
 void Storage::flush_run(bool flush_all) {

@@ -5,9 +5,7 @@
 #include <vector>
 
 class FileReader;
-enum class ManifestRecordType {
-  SST,
-};
+enum class ManifestRecordType { SST, WAL };
 
 struct ManifestRecord {
   ManifestRecordType type_;
