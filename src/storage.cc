@@ -74,7 +74,7 @@ Storage::get(std::vector<std::byte> &key) {
     return std::nullopt;
   }
 
-  for (auto it = sst_.rbegin(); it != sst_.rend(); ++it) {
+  for (auto it = l0_sst_.rbegin(); it != l0_sst_.rend(); ++it) {
     value_slice = (*it)->get(key);
     if (value_slice == std::nullopt)
       continue;
@@ -141,7 +141,7 @@ void Storage::recover(const std::vector<VersionEdit> &manifest_records) {
     for (auto &file_id : level_data) {
       auto path =
           std::vformat(sst_pattern_view, std::make_format_args(file_id));
-      sst_.emplace_back(std::make_unique<SST>(path));
+      l0_sst_.emplace_back(std::make_unique<SST>(path));
     }
   }
 
@@ -151,8 +151,8 @@ void Storage::recover(const std::vector<VersionEdit> &manifest_records) {
         MemTable::recover(path, wal_id, opt_.mem_table_size_));
   }
 
-  if (!sst_.empty()) {
-    latest_table_id_ = sst_.back()->get_id() + 1;
+  if (!l0_sst_.empty()) {
+    latest_table_id_ = l0_sst_.back()->get_id() + 1;
   }
 
   if (!immutable_memtable_.empty()) {
@@ -171,6 +171,11 @@ void Storage::new_active_memtable() {
   VersionEdit version_edit;
   version_edit.add_new_wal(latest_table_id_);
   manifest_.add_record(version_edit);
+}
+
+StorageStateSnapshot Storage::get_storage_state_snapshot() {
+  std::shared_lock lk{mu_};
+  return StorageStateSnapshot{.l0_sst_ = l0_sst_};
 }
 
 void Storage::flush_run(bool flush_all) {
@@ -203,8 +208,8 @@ void Storage::flush_run(bool flush_all) {
       version_edit.add_new_file(0, table->get_id());
     }
     manifest_.add_record(version_edit);
-    sst_.insert(sst_.end(), std::make_move_iterator(sst.begin()),
-                std::make_move_iterator(sst.end()));
+    l0_sst_.insert(l0_sst_.end(), std::make_move_iterator(sst.begin()),
+                   std::make_move_iterator(sst.end()));
     immutable_memtable_.erase(immutable_memtable_.begin(),
                               immutable_memtable_.begin() +
                                   flush_memtable_count);

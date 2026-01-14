@@ -24,6 +24,10 @@ struct StorageOption {
   WALSyncOption wal_sync_option{WALSyncOption::SYNC_ON_CLOSE};
 };
 
+struct StorageStateSnapshot {
+  std::vector<std::shared_ptr<SST>> l0_sst_;
+};
+
 class SST;
 
 class Storage {
@@ -46,11 +50,12 @@ private:
   void flush_thread();
   void recover(const std::vector<VersionEdit> &);
   void new_active_memtable();
+  StorageStateSnapshot get_storage_state_snapshot();
 
 private:
   StorageOption opt_;
   std::vector<std::shared_ptr<MemTable>> immutable_memtable_;
-  std::vector<std::unique_ptr<SST>> sst_;
+  std::vector<std::shared_ptr<SST>> l0_sst_;
   std::unique_ptr<MemTable> active_memtable_;
   std::unique_ptr<WAL> active_wal_;
   std::shared_mutex mu_;
