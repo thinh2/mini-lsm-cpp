@@ -33,6 +33,7 @@ set(SOURCES
     src/sst/sst_iterator.cc
     src/manifest/manifest.cc
     src/wal/wal.cc
+    src/version_edit.cc
 )
 
 set(HEADERS
@@ -48,12 +49,13 @@ set(HEADERS
     include/sst/sst_iterator.hpp
     include/manifest/manifest.hpp
     include/wal/wal.hpp
+    include/version_edit.hpp
 )
 
 # Main library
 add_library(mini_lsm ${SOURCES} ${HEADERS})
 target_include_directories(mini_lsm PUBLIC include)
-target_link_libraries(mini_lsm PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(mini_lsm PUBLIC nlohmann_json::nlohmann_json)
 
 # Executable
 #add_executable(mini_lsm_app src/main.cpp)

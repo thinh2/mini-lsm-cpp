@@ -1,25 +1,18 @@
 #pragma once
 #include "io/file_writer.hpp"
 #include <filesystem>
+#include <set>
 #include <utility>
 #include <vector>
 
 class FileReader;
-enum class ManifestRecordType { SST, WAL };
-
-struct ManifestRecord {
-  ManifestRecordType type_;
-  uint64_t id_;
-  bool operator==(const ManifestRecord &other) const {
-    return id_ == other.id_ && type_ == other.type_;
-  };
-};
+class VersionEdit;
 
 class Manifest {
 public:
-  static std::pair<Manifest, std::vector<ManifestRecord>>
+  static std::pair<Manifest, std::vector<VersionEdit>>
   recover(const std::filesystem::path &path);
-  void add_record(const ManifestRecord &record);
+  void add_record(const VersionEdit &record);
 
   Manifest() = default;
   //  Manifest(const Manifest &other) = delete;

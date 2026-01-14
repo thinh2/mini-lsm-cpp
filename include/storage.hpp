@@ -44,7 +44,7 @@ private:
   std::vector<std::unique_ptr<SST>>
   flush_to_SST(std::vector<std::shared_ptr<MemTable>> &mem_table_ptr);
   void flush_thread();
-  void recover(const std::vector<ManifestRecord> &);
+  void recover(const std::vector<VersionEdit> &);
   void new_active_memtable();
 
 private:

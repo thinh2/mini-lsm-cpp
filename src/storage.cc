@@ -2,6 +2,7 @@
 #include "memtable.hpp"
 #include "sst/sst_builder.hpp"
 #include "utils.hpp"
+#include "version_edit.hpp"
 #include <algorithm>
 #include <chrono>
 #include <format>
@@ -105,7 +106,7 @@ void Storage::flush_thread() {
   }
 }
 
-void Storage::recover(const std::vector<ManifestRecord> &manifest_records) {
+void Storage::recover(const std::vector<VersionEdit> &manifest_records) {
   auto sst_pattern = opt_.sst_directory_ / "sst_{}";
   auto sst_pattern_view = sst_pattern.string();
 
@@ -117,41 +118,37 @@ void Storage::recover(const std::vector<ManifestRecord> &manifest_records) {
     return;
   }
 
-  std::map<size_t, ManifestRecordType> manifest_index_;
-  for (auto &record : manifest_records) {
-    switch (record.type_) {
-    case ManifestRecordType::SST: {
-      manifest_index_[record.id_] = record.type_;
-      continue;
+  std::vector<uint64_t> wal;
+  std::map<uint64_t, std::vector<uint64_t>> leveled;
+  uint64_t min_recover_wal_id = 0;
+  for (const auto &record : manifest_records) {
+    if (record.get_wal_addition().has_value()) {
+      wal.emplace_back(record.get_wal_addition()->file_id_);
     }
-    case ManifestRecordType::WAL: {
-      if (!manifest_index_.contains(record.id_)) {
-        manifest_index_[record.id_] = record.type_;
+
+    // sst file
+    if (!record.get_new_file().empty()) {
+      for (const auto &new_file : record.get_new_file()) {
+        leveled[new_file.level_].emplace_back(new_file.file_id_);
+        min_recover_wal_id =
+            std::max(new_file.file_id_ + 1, min_recover_wal_id);
       }
-      continue;
-    }
-    default: {
-      throw std::runtime_error("unsupport ManifestRecordType");
-    }
     }
   }
 
-  for (auto &[record_id, record_type] : manifest_index_) {
-    switch (record_type) {
-    case ManifestRecordType::SST: {
+  // assume SST has 1 level.
+  for (auto [level_id, level_data] : leveled) {
+    for (auto &file_id : level_data) {
       auto path =
-          std::vformat(sst_pattern_view, std::make_format_args(record_id));
+          std::vformat(sst_pattern_view, std::make_format_args(file_id));
       sst_.emplace_back(std::make_unique<SST>(path));
-      continue;
     }
-    case ManifestRecordType::WAL: {
-      auto path =
-          std::vformat(wal_pattern_view, std::make_format_args(record_id));
-      immutable_memtable_.emplace_back(
-          MemTable::recover(path, record_id, opt_.mem_table_size_));
-      continue;
-    }
-    }
+  }
+
+  for (auto &wal_id : wal) {
+    auto path = std::vformat(wal_pattern_view, std::make_format_args(wal_id));
+    immutable_memtable_.emplace_back(
+        MemTable::recover(path, wal_id, opt_.mem_table_size_));
   }
 
   if (!sst_.empty()) {
@@ -171,8 +168,9 @@ void Storage::new_active_memtable() {
   auto wal_path =
       opt_.wal_directory_ / (std::to_string(latest_table_id_) + ".wal");
   active_wal_ = std::make_unique<WAL>(wal_path);
-  manifest_.add_record(
-      {.id_ = latest_table_id_, .type_ = ManifestRecordType::WAL});
+  VersionEdit version_edit;
+  version_edit.add_new_wal(latest_table_id_);
+  manifest_.add_record(version_edit);
 }
 
 void Storage::flush_run(bool flush_all) {
@@ -200,10 +198,11 @@ void Storage::flush_run(bool flush_all) {
 
   {
     std::lock_guard lk{mu_};
+    VersionEdit version_edit;
     for (auto &table : sst) {
-      manifest_.add_record(
-          {.id_ = table->get_id(), .type_ = ManifestRecordType::SST});
+      version_edit.add_new_file(0, table->get_id());
     }
+    manifest_.add_record(version_edit);
     sst_.insert(sst_.end(), std::make_move_iterator(sst.begin()),
                 std::make_move_iterator(sst.end()));
     immutable_memtable_.erase(immutable_memtable_.begin(),
