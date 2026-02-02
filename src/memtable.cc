@@ -104,7 +104,5 @@ std::vector<std::byte> ImmutableMemTableIterator::value() {
 void ImmutableMemTableIterator::next() {
   if (curr_it_ != storage_->end()) {
     curr_it_ = std::next(curr_it_);
-    if (curr_it_ == storage_->end())
-      return;
   }
 }

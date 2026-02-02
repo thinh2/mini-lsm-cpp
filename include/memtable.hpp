@@ -28,6 +28,7 @@ public:
                                            uint64_t id, uint64_t cap_size);
 
 public:
+  MemTable() = default;
   MemTable(uint64_t size, uint64_t id = 0);
   std::optional<std::vector<std::byte>> get(const std::vector<std::byte> &key);
   void put(const std::vector<std::byte> &key,

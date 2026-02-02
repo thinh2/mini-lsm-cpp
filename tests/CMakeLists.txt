@@ -99,4 +99,19 @@ target_include_directories(wal_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(wal_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
 add_test(NAME wal_test COMMAND wal_test)
 
+# merge_iterator test
+add_executable(merge_iterator_test
+    merge_iterator_test.cc
+)
+
+target_link_libraries(merge_iterator_test
+    mini_lsm
+    gtest_main
+)
+
+target_include_directories(merge_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(merge_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
+add_test(NAME merge_iterator_test COMMAND merge_iterator_test)
+
+
 

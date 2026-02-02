@@ -1,9 +1,10 @@
 #pragma once
 
 #include <cstddef>
+#include <iostream>
+#include <random>
 #include <string>
 #include <vector>
-
 namespace test_utils {
 
 // Convert string to std::vector<std::byte>
@@ -59,4 +60,29 @@ MakeKeyValueEntryFromString(
   return res;
 }
 
+// Generate a random string of given length
+inline std::string MakeRandomString(size_t length) {
+  static const char charset[] = "0123456789"
+                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                "abcdefghijklmnopqrstuvwxyz";
+  static thread_local std::mt19937 rng{std::random_device{}()};
+  static thread_local std::uniform_int_distribution<size_t> dist(
+      0, sizeof(charset) - 2);
+
+  std::string result;
+  result.reserve(length);
+  for (size_t i = 0; i < length; ++i) {
+    result += charset[dist(rng)];
+  }
+  return result;
+}
+
+// Generate random key and value as byte vectors
+inline std::pair<std::vector<std::byte>, std::vector<std::byte>>
+MakeRandomKeyValue(size_t key_len, size_t value_len) {
+  std::string key = MakeRandomString(key_len);
+  std::string value = MakeRandomString(value_len);
+  // std::cout << key << " " << value << std::endl;
+  return {MakeBytesVector(std::move(key)), MakeBytesVector(std::move(value))};
+}
 } // namespace test_utils
