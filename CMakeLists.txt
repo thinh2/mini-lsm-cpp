@@ -35,6 +35,7 @@ set(SOURCES
     src/wal/wal.cc
     src/version_edit.cc
     src/merge_iterator.cc
+    src/two_merge_iterator.cc
 )
 
 set(HEADERS
@@ -52,6 +53,7 @@ set(HEADERS
     include/wal/wal.hpp
     include/version_edit.hpp
     include/merge_iterator.hpp
+    include/two_merge_iterator.hpp
 )
 
 # Main library

@@ -26,6 +26,7 @@ struct StorageOption {
 
 struct StorageStateSnapshot {
   std::vector<std::shared_ptr<SST>> l0_sst_;
+  std::vector<std::shared_ptr<SST>> l1_sst_;
 };
 
 class SST;

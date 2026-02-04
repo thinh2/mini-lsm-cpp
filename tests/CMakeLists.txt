@@ -113,5 +113,19 @@ target_include_directories(merge_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/inclu
 target_include_directories(merge_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
 add_test(NAME merge_iterator_test COMMAND merge_iterator_test)
 
+# two_merge_iterator test
+add_executable(two_merge_iterator_test
+    two_merge_iterator_test.cc
+)
+
+target_link_libraries(two_merge_iterator_test
+    mini_lsm
+    gtest_main
+)
+
+target_include_directories(two_merge_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(two_merge_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
+add_test(NAME two_merge_iterator_test COMMAND two_merge_iterator_test)
+
 
 
