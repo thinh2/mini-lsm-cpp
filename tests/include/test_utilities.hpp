@@ -85,4 +85,38 @@ MakeRandomKeyValue(size_t key_len, size_t value_len) {
   // std::cout << key << " " << value << std::endl;
   return {MakeBytesVector(std::move(key)), MakeBytesVector(std::move(value))};
 }
+
+using KeyValue = std::pair<std::vector<std::byte>, std::vector<std::byte>>;
+
+class VectorIteratorStub : public Iterator {
+public:
+  explicit VectorIteratorStub(std::vector<KeyValue> entries)
+      : entries_(std::move(entries)) {}
+
+  void next() override {
+    if (is_valid()) {
+      ++current_index_;
+    }
+  }
+
+  std::vector<std::byte> key() override {
+    if (!is_valid()) {
+      return {};
+    }
+    return entries_[current_index_].first;
+  }
+
+  std::vector<std::byte> value() override {
+    if (!is_valid()) {
+      return {};
+    }
+    return entries_[current_index_].second;
+  }
+
+  bool is_valid() override { return current_index_ < entries_.size(); }
+
+private:
+  std::vector<KeyValue> entries_;
+  std::size_t current_index_{0};
+};
 } // namespace test_utils
