@@ -127,5 +127,21 @@ target_include_directories(two_merge_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/i
 target_include_directories(two_merge_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
 add_test(NAME two_merge_iterator_test COMMAND two_merge_iterator_test)
 
+# concat_iterator test
+add_executable(concat_iterator_test
+    concat_iterator_test.cc
+)
+
+target_link_libraries(concat_iterator_test
+    mini_lsm
+    gtest_main
+)
+
+target_include_directories(concat_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(concat_iterator_test PRIVATE ${CMAKE_SOURCE_DIR}/tests/include)
+add_test(NAME concat_iterator_test COMMAND concat_iterator_test)
+
+
+
 
 
