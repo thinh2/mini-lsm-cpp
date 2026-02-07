@@ -42,6 +42,7 @@ public:
 
 class SST {
 public:
+  SST() = default;
   SST(const std::filesystem::path &file_name);
   std::optional<std::vector<std::byte>> get(std::vector<std::byte> &key);
 

@@ -92,7 +92,8 @@ std::vector<std::unique_ptr<SST>>
 Storage::flush_to_SST(std::vector<std::shared_ptr<MemTable>> &mem_table_ptr) {
   std::vector<std::unique_ptr<SST>> new_sst;
   SSTConfig sst_config{.block_size_ = opt_.max_sst_block_size_,
-                       .sst_directory_ = opt_.sst_directory_};
+                       .sst_directory_ = opt_.sst_directory_,
+                       .sst_size_ = opt_.sst_size_};
   for (auto &mem_table : mem_table_ptr) {
     new_sst.emplace_back(std::make_unique<SST>(mem_table->flush(sst_config)));
   }
@@ -175,7 +176,7 @@ void Storage::new_active_memtable() {
 
 StorageStateSnapshot Storage::get_storage_state_snapshot() {
   std::shared_lock lk{mu_};
-  return StorageStateSnapshot{.l0_sst_ = l0_sst_};
+  return StorageStateSnapshot{.storage_ = this, .l0_sst_ = l0_sst_};
 }
 
 void Storage::flush_run(bool flush_all) {
@@ -226,6 +227,27 @@ void Storage::close() {
 }
 
 uint64_t Storage::get_current_table_id() { return latest_table_id_; }
+
+SSTBuilder Storage::allocate_new_sst_builder(bool include_sst_size_config) {
+  size_t sst_id;
+  {
+    std::lock_guard lk{mu_};
+    // TODO: move it to allocate_table_id method
+    latest_table_id_++;
+    sst_id = latest_table_id_;
+  }
+
+  auto filename = std::format("sst_{}", sst_id);
+  auto sst_config = SSTConfig{.block_size_ = opt_.max_sst_block_size_,
+                              .sst_directory_ = opt_.sst_directory_};
+  if (include_sst_size_config) {
+    sst_config.sst_size_ = opt_.sst_size_;
+  }
+  const std::filesystem::path sst_path =
+      sst_config.sst_directory_.empty() ? std::filesystem::path(filename)
+                                        : sst_config.sst_directory_ / filename;
+  return std::move(SSTBuilder(sst_path, sst_config));
+}
 
 Storage::~Storage() {
   // TODO: release the unique_ptr, shared_ptr?

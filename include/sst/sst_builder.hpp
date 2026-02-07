@@ -8,13 +8,15 @@ class BlockMetadata;
 
 struct SSTConfig {
   size_t block_size_;
+  size_t sst_size_;
   std::filesystem::path sst_directory_;
 };
 
 class SSTBuilder {
 public:
+  SSTBuilder() = default;
   SSTBuilder(const std::filesystem::path &path, SSTConfig &sst_config);
-  void add_entry(std::vector<std::byte> &key, std::vector<std::byte> &val);
+  bool add_entry(std::vector<std::byte> &key, std::vector<std::byte> &val);
   SST build();
 
   // for testing only
@@ -30,4 +32,5 @@ private:
   BlockBuilder block_builder_;
   std::vector<BlockMetadata> block_metadata_;
   std::filesystem::path path_;
+  uint64_t approx_sst_size_;
 };

@@ -2,6 +2,7 @@
 #include "manifest/manifest.hpp"
 #include "memtable.hpp"
 #include "sst/sst.hpp"
+#include "sst/sst_builder.hpp"
 #include "wal/wal.hpp"
 #include <filesystem>
 #include <memory>
@@ -18,13 +19,16 @@ struct StorageOption {
   std::uint64_t mem_table_size_{4096};
   std::uint64_t max_number_of_memtable_{2};
   std::uint64_t max_sst_block_size_{1024};
+  std::uint64_t sst_size_{0};
   std::filesystem::path sst_directory_{"./sst"};
   std::filesystem::path manifest_path_{"./manifest.json"};
   std::filesystem::path wal_directory_{"./wal"};
   WALSyncOption wal_sync_option{WALSyncOption::SYNC_ON_CLOSE};
 };
 
+class Storage;
 struct StorageStateSnapshot {
+  Storage *storage_;
   std::vector<std::shared_ptr<SST>> l0_sst_;
   std::vector<std::shared_ptr<SST>> l1_sst_;
 };
@@ -42,6 +46,7 @@ public:
 
   void flush_run(bool flush_all = false);
   uint64_t get_current_table_id();
+  SSTBuilder allocate_new_sst_builder(bool include_sst_config = false);
   ~Storage();
 
 private:

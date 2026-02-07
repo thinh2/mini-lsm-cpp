@@ -37,6 +37,7 @@ set(SOURCES
     src/merge_iterator.cc
     src/two_merge_iterator.cc
     src/concat_iterator.cc
+    src/compaction/simple_compaction.cc
 )
 
 set(HEADERS
@@ -56,6 +57,7 @@ set(HEADERS
     include/merge_iterator.hpp
     include/two_merge_iterator.hpp
     include/concat_iterator.hpp
+    include/compaction/simple_compaction.hpp
 )
 
 # Main library

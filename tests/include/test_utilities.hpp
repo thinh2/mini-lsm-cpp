@@ -1,5 +1,6 @@
 #pragma once
 
+#include "iterator.hpp"
 #include <cstddef>
 #include <iostream>
 #include <random>

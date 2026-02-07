@@ -363,7 +363,6 @@ protected:
     opt_.max_number_of_memtable_ = 3;
     opt_.max_sst_block_size_ = 1024;
     opt_.sst_directory_ = sst_directory_;
-
     storage_ = std::make_unique<Storage>(opt_);
   }
 

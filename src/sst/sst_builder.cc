@@ -5,14 +5,21 @@
 #include "utils.hpp"
 
 SSTBuilder::SSTBuilder(const std::filesystem::path &path, SSTConfig &sst_config)
-    : finished_(false), sst_config_(sst_config), path_(path) {
+    : finished_(false), sst_config_(sst_config), path_(path),
+      approx_sst_size_{0} {
   out_ = std::ofstream(path, std::ios::binary);
 }
 
-void SSTBuilder::add_entry(std::vector<std::byte> &key,
+bool SSTBuilder::add_entry(std::vector<std::byte> &key,
                            std::vector<std::byte> &val) {
   if (finished_) {
     throw std::runtime_error("SSTBuilder build finished");
+  }
+
+  if (sst_config_.sst_size_ > 0 &&
+      approx_sst_size_ + 2 + key.size() + 2 + val.size() >
+          sst_config_.sst_size_) {
+    return false;
   }
 
   if (2 + key.size() + 2 + val.size() + block_builder_.get_size() >
@@ -20,6 +27,8 @@ void SSTBuilder::add_entry(std::vector<std::byte> &key,
     write_block();
   }
   block_builder_.add_entry(key, val);
+  approx_sst_size_ += 2 + key.size() + 2 + val.size();
+  return true;
 }
 
 SST SSTBuilder::build() {
@@ -63,6 +72,7 @@ SST SSTBuilder::build() {
 const std::vector<BlockMetadata> &SSTBuilder::get_block_metadata() const {
   return block_metadata_;
 }
+
 void SSTBuilder::write_block() {
   auto block = block_builder_.build();
   auto encoded_block = block.encode();
